@@ -1,0 +1,14 @@
+services:
+  postgres:
+    environment:
+      - POSTGRES_PASSWORD=password
+    image: postgres:16-alpine
+    restart: unless-stopped
+    user: postgres
+    volumes:
+      - labs-db-data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+
+volumes:
+  labs-db-data:
