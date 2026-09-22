@@ -6,5 +6,5 @@ CREATE TABLE lab2_employee_ilinov (
     salary INTEGER NOT NULL,
     address TEXT NOT NULL,
     phone_number TEXT NOT NULL,
-    date_start TIMESTAMPTZ NOT NULL
+    date_start DATE NOT NULL
 );
