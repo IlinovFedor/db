@@ -1,0 +1,72 @@
+%% Преамбула TeX-файла
+
+% 1. Стиль и язык
+\documentclass{G7-32} % Стиль (по умолчанию размер шрифта 14pt)
+
+% Остальные стандартные настройки убраны в preamble.inc.tex.
+\include{preamble.inc}
+
+% Настройки листингов.
+\ifPDFTeX
+\include{listings.inc}
+\else
+\usepackage{local-minted}
+\fi
+
+% Полезные макросы листингов.
+\include{macros.inc}
+
+% Стиль титульного листа и заголовки
+\usepackage{title-petrenko}
+
+% --- Заполняем данные для титульника ---
+% Те поля, которые вы не укажете, возьмут значения по умолчанию (БД, Петренко, ПНИПУ и т.д.)
+\LabNumber{0} % Номер лабораторной
+\LabTopic{Макет для отчетов работ} % Тема работы
+\LabStudent{РИС-25-2б}{Ильинов Ф. М.} % Группа и ФИО студента
+
+\begin{document}
+
+\begin{titlepage}
+\end{titlepage}
+
+\frontmatter % выключает нумерацию ВСЕГО; здесь начинаются ненумерованные главы: реферат, введение, глоссарий, сокращения и прочее.
+
+%\listoffigures                         % Список рисунков
+
+%\listoftables                          % Список таблиц
+
+%\NormRefs % Нормативные ссылки 
+% Команды \breakingbeforechapters и \nonbreakingbeforechapters
+% управляют разрывом страницы перед главами.
+% По-умолчанию страница разрывается.
+
+% \nobreakingbeforechapters
+% \breakingbeforechapters
+
+
+\tableofcontents
+
+\printnomenclature % Автоматический список сокращений
+
+\mainmatter % это включает нумерацию глав и секций в документе ниже
+
+
+\include{10-aim}
+\include{20-tasks}
+\include{30-stages}
+
+\backmatter %% Здесь заканчивается нумерованная часть документа и начинаются ссылки и
+
+\include{40-conclusion}
+
+\include{50-biblio}
+
+\appendix   % Тут идут приложения
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

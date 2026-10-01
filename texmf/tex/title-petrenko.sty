@@ -1,0 +1,125 @@
+\NeedsTeXFormat{LaTeX2e}
+
+% ------------------------------------------------------------------
+%  Титульный лист лабораторной работы -- копия титульника из Word
+%  ("Шаблон отчета к лабораторным.docx").
+%
+%  Параметры страницы в Word, на которые рассчитан файл:
+%    A4, поля: левое 3 см, правое 1,5 см, верхнее и нижнее 2 см;
+%    Times New Roman 14 пт, интервал 1,5 (заголовки "Базы данных" и
+%    "Лабораторная работа" -- 16 пт).
+%  Шрифт и поля страницы этот файл НЕ меняет -- они берутся из класса.
+%
+%  Файл должен быть в кодировке UTF-8 (XeLaTeX / LuaLaTeX; для pdfLaTeX
+%  нужны inputenc utf8 + T2A + babel russian).
+% ------------------------------------------------------------------
+
+% ---------- поля титульника: команды для преамбулы ----------------
+% Всё, что не задано, остаётся таким же, как в шаблоне Word
+% (пустые поля -- подчёркнутые прочерки).
+
+\newcommand*\LabMinistry[1]{\def\Lab@Ministry{#1}}       % министерство
+\newcommand*\LabUniversity[1]{\def\Lab@University{#1}}   % университет
+\newcommand*\LabFaculty[1]{\def\Lab@Faculty{#1}}         % факультет
+\newcommand*\LabDepartment[1]{\def\Lab@Department{#1}}   % кафедра
+\newcommand*\LabDiscipline[1]{\def\Lab@Discipline{#1}}   % дисциплина
+\newcommand*\LabNumber[1]{\def\Lab@Number{#1}}           % номер работы
+\newcommand*\LabTopic[1]{\def\Lab@Topic{#1}}             % тема
+\newcommand*\LabStudent[2]{\def\Lab@Group{#1}\def\Lab@StudentName{#2}} % {группа}{Фамилия И.О.}
+\newcommand*\LabTeacher[2]{\def\Lab@TeacherPost{#1}\def\Lab@TeacherName{#2}} % {должность}{Фамилия И.О.}
+\newcommand*\LabTown[1]{\def\Lab@Town{#1}}               % город
+\newcommand*\LabYear[1]{\def\Lab@Year{#1}}               % год
+
+% значения по умолчанию -- ровно как в шаблоне Word
+\def\Lab@Ministry{Министерство образования и науки РФ}
+\def\Lab@University{Пермский национальный исследовательский политехнический университет}
+\def\Lab@Faculty{Электротехнический факультет}
+\def\Lab@Department{Кафедра Информационные технологии и автоматизированные системы}
+\def\Lab@Discipline{Базы данных}
+\def\Lab@Number{}
+\def\Lab@Topic{}
+\def\Lab@Group{}
+\def\Lab@StudentName{}
+\def\Lab@TeacherPost{доцент кафедры ИТАС}
+\def\Lab@TeacherName{Петренко А.А.}
+\def\Lab@Town{Пермь}
+\def\Lab@Year{\the\year}
+
+% ---------- размеры (из Word) --------------------------------------
+\newlength{\Lab@lh}      \setlength{\Lab@lh}{24.13pt}      % строка 14 пт x 1,5
+\newlength{\Lab@lhL}     \setlength{\Lab@lhL}{27.6pt}      % строка 16 пт x 1,5
+\newlength{\Lab@indent}  \setlength{\Lab@indent}{8.5cm}    % отступ блока "Выполнил/Проверил" (4820 twips)
+\newlength{\Lab@tmp}
+
+% ---------- вспомогательные макросы --------------------------------
+% подчёркивание как в Word (Times New Roman 14 пт): линия 0,65 пт на 1,15 пт ниже базовой
+\newcommand*\Lab@rulespec{\@height-1.15\p@\@depth1.8\p@}
+
+% линия, заполняющая остаток строки
+\newcommand*\Lab@rule{\leaders\hrule\Lab@rulespec\hfill}
+
+% подчёркнутый текст (свой вариант \underline -- с той же геометрией, что и \Lab@rule)
+\newsavebox{\Lab@box}
+\newcommand*\Lab@ulraw[1]{%
+    \sbox{\Lab@box}{#1}%
+    \usebox{\Lab@box}\kern-\wd\Lab@box
+    \vrule\@width\wd\Lab@box\Lab@rulespec\relax}
+% то же, но с небольшими полями по бокам текста (для строк подписи)
+\newcommand*\Lab@ul[1]{\Lab@ulraw{\kern.3em #1\kern.3em}}
+
+% остаток строки подчёркнут, текст #1 стоит по центру линии
+\newcommand*\Lab@ulfill[1]{\leavevmode\Lab@rule\Lab@ul{#1}\Lab@rule\kern\z@}
+
+% строка по центру
+\newcommand*\Lab@center[1]{{\centering #1\par}}
+
+% строка "Тема: «...»"
+\newcommand*\Lab@topicline{%
+    \ifx\Lab@Topic\@empty
+    Тема:~«\hbox to 8.7cm{\Lab@rule}»%
+    \else
+        \settowidth{\Lab@tmp}{Тема:~«\Lab@ulraw{\Lab@Topic}»}%
+        \ifdim\Lab@tmp<\linewidth
+        Тема:~«\Lab@ulraw{\Lab@Topic}»% % короткая тема -- подчёркнута, как в Word
+        \else
+            Тема:~«\Lab@Topic»%            % длинная тема -- переносится без подчёркивания
+        \fi
+    \fi}
+
+% ---------- сам титульный лист -------------------------------------
+\@ifundefined{titlepage}{\newenvironment}{\renewenvironment}{titlepage}{%
+    \clearpage
+    \thispagestyle{empty}%
+    \setlength{\parindent}{0pt}\setlength{\parskip}{0pt}%
+    \renewcommand{\baselinestretch}{1}%
+    \fontsize{14pt}{\Lab@lh}\selectfont
+    \sloppy
+    % --- шапка ---
+    \Lab@center{\Lab@Ministry}%
+    \Lab@center{\Lab@University}%
+    \Lab@center{\Lab@Faculty}%
+    \Lab@center{\Lab@Department}%
+    \vspace{5\Lab@lh}%
+    % --- дисциплина и номер работы (16 пт) ---
+    {\fontsize{16pt}{\Lab@lhL}\selectfont
+    \Lab@center{\Lab@Discipline}%
+    \Lab@center{Лабораторная работа №~\ifx\Lab@Number\@empty\_\_\else\Lab@Number\fi}}%
+    \vspace{\Lab@lh}%
+    % --- тема ---
+    \Lab@center{\Lab@topicline}%
+    \vspace{2\Lab@lh}%
+    % --- исполнитель и проверяющий (блок с отступом 8,5 см) ---
+    \noindent\hspace*{\Lab@indent}%
+    \parbox[t]{\dimexpr\linewidth-\Lab@indent\relax}{%
+        \setlength{\parindent}{0pt}\raggedright
+        Выполнил: студент группы~\Lab@ulfill{\Lab@Group}\par
+        \Lab@ulfill{\Lab@StudentName}\par
+        Проверил: \Lab@TeacherPost\par
+        \Lab@TeacherName\par}\par
+    % --- город и год внизу страницы ---
+    \vfill
+    \Lab@center{г.~\Lab@Town~\textendash~\Lab@Year}%
+    \vspace*{1.4\Lab@lh}%
+}{%
+    \clearpage
+}
