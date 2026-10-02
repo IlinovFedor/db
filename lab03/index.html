@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>БД Лабораторная работа №3</title>
+    <link rel="stylesheet" href="/css/pico.classless.min.css">
+</head>
+<body>
+<main class="container">
+    <header>
+        <h1>БД Лабораторная работа №3</h1>
+        <p>РИС-25-2б Ильинов Ф. М.</p>
+    </header>
+
+    <article>
+        <form action="/query" method="get">
+            <input type="hidden" name="opId" value="1">
+            <button type="submit">Получить список сотрудников, номера телефонов и ЗП</button>
+        </form>
+        <form action="/query" method="get">
+            <input type="hidden" name="opId" value="2">
+            <button type="submit">Получить список сотрудников с их адресами (отсортировать по адресу)</button>
+        </form>
+        <form action="/query" method="get">
+            <input type="hidden" name="opId" value="3">
+            <button type="submit">Получить список сотрудников с продолжительностью трудовой деятельности больше 4 лет
+            </button>
+        </form>
+    </article>
+
+    <article>
+        <table>
+            <thead>
+            {{ if eq .Type "1" }}
+                <th>Фамилия</th>
+                <th>Имя</th>
+                <th>Отчество</th>
+                <th>Номер телефона</th>
+                <th>Зарплата</th>
+                {{ else }} {{ if eq .Type "2" }}
+                    <th>Фамилия</th>
+                    <th>Имя</th>
+                    <th>Отчество</th>
+                    <th>Адрес</th>
+                    {{ else }} {{ if eq .Type "3" }}
+                        <th>Фамилия</th>
+                        <th>Имя</th>
+                        <th>Отчество</th>
+                        <th>Дата найма</th>
+                        {{ else }}
+                    Нажмите кнопку
+                    {{ end }}
+                {{ end }}
+            {{ end }}
+            </thead>
+            {{ range .Rows }}
+            <tr>
+                {{ range . }}
+                <td>{{ . }}</td>
+                {{ end }}
+            </tr>
+            {{ end }}
+        </table>
+    </article>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,14 @@
+# Fdb version 4
+["xdvipdfmx"] 0 "/home/localuser/GolandProjects/db/texmf/fonts/report-lab-03.xdv" "/home/localuser/GolandProjects/db/reports/report-lab-03.pdf" "/home/localuser/GolandProjects/db/reports/report-lab-03" 0 -1
+  "/home/localuser/GolandProjects/db/texmf/fonts/report-lab-03.xdv" 0 -1 0 "xelatex"
+  (generated)
+  "/home/localuser/GolandProjects/db/reports/report-lab-03.pdf"
+  (rewritten before read)
+["xelatex"] 0 "report-lab-03.tex" "/home/localuser/GolandProjects/db/texmf/fonts/report-lab-03.xdv" "report-lab-03" 0 -1
+  "/home/localuser/GolandProjects/db/texmf/fonts/report-lab-03.aux" 0 -1 0 "xelatex"
+  "report-lab-03.tex" 0 -1 0 ""
+  (generated)
+  "/home/localuser/GolandProjects/db/texmf/fonts/report-lab-03.aux"
+  "/home/localuser/GolandProjects/db/texmf/fonts/report-lab-03.log"
+  "/home/localuser/GolandProjects/db/texmf/fonts/report-lab-03.xdv"
+  (rewritten before read)
