@@ -1,0 +1,124 @@
+\section{Проектирование и разработка веб-сервера}
+
+\begin{listing}[H]
+    \gofile[firstline=3, lastline=10, firstnumber=3, autogobble]{../main.go}
+    \caption{Используемые библиотеки}
+    \label{lst:import}
+\end{listing}
+
+При разработке сервера были использованы следующие библиотеки (листинг \ref{lst:import})
+
+\begin{enumerate}
+    \item \texttt{html/template} --- используется для формирования итоговых HTML;
+    \item \texttt{log/slog} --- используется для ведения журнала ошибок;
+    \item \texttt{net/http} --- реализует работу с протоколом http;
+    \item \texttt{os} --- требуется для завершения программы с кодом 1 в случае возникновения критической ошибки;
+    \item \texttt{github.com/jackc/pgx} --- используется для работы с СУБД PostgreSQL.
+\end{enumerate}
+
+\subsection{Точка входа в программу}
+
+\begin{listing}[H]
+    \gofile[firstline=95, lastline=124, firstnumber=95, autogobble]{../main.go}
+    \caption{Точка входа в программу --- функция main}
+    \label{lst:main}
+\end{listing}
+
+Функция \texttt{main} является точкой входа в программу в языке Golang (листинг \ref{lst:main}).
+
+В строке 96 инициализируется хендлер HTTP-файлового сервера, требуемого для раздачи файла стилей css.
+
+В следующей строке создается шаблон на основе файла \texttt{index.html} и проверяется корректность выполнения этой функции.
+В случае, если функция завершилось ошибкой, выводится соответствующее сообщение в консоль и программа завершает выполнение
+с кодом 1.
+
+В строках 102--108 инициализируется пул соединений к СУБД, где указывается название хоста, порт подключения,
+имя базы данных и пользователя, а так же пароль.
+В строках 110--113 также проверяется наличие ошибки, по аналогии с предыдущим абзацем.
+
+В строках 115--118 создается маршрутизатор (мультиплексор) HTTP-запросов:
+\begin{enumerate}
+    \item По пути \texttt{/css/} должны находиться файлы стилей. В качестве хендлера используется хендлер, созданный в стркое 93.
+    \item По пути \texttt{/} --- главная страница. Для обработки запросов используется функция \texttt{Root}, принимающая HTML-шаблон и возвращающая требуемый хендлер.
+    \item По пути \texttt{/query} --- результаты выполнения SQL запросов. Функция \texttt{Queries} принимает HTML-шаблон и созданный в строках 102--108 пул соединений.
+\end{enumerate}
+
+В строках 120--123 запускается HTTP-сервер, находящийся по адресу \texttt{localhost} и слушающий порт \texttt{8080}.
+
+\subsection{Хендлер главной страницы}
+
+\begin{listing}[H]
+    \gofile[firstline=17, lastline=31, firstnumber=17, autogobble]{../main.go}
+    \caption{Хендлер главной страницы}
+    \label{lst:root}
+\end{listing}
+
+Функция \texttt{Root} (листинг \ref{lst:root}), принимающая на вход HTML-темплейт и возвращающая HTTP-хендлер.
+Хендлер --- функция, принимающая типы \texttt{http.ResponseWriter} (используется для записи в HTTP-соединение) и \texttt{http.Request}
+(запрос клиента).
+Конструкция \texttt{switch} используется для разграничения HTTP методов: сервер программы реализует только метод \texttt{GET},
+для всех остальных методов в секции \texttt{default} клиенту возвращается HTTP-статус \texttt{405 Method Not Allowed},
+сигнализирующий о том, что сервер допускает только метод \texttt{GET}.
+
+В секции \texttt{http.MethodGet} собирается итоговый HTML-документ.
+В качестве параметров передается \texttt{writer} и \texttt{nil}, так как в данном случае наша страница не содержит никаких данных
+SQL запросов.
+В случае ошибки клиенту отправляется статус \texttt{500 Internal Server Error}, сигнализирующий об ошибке на стороне сервера.
+
+\subsection{Хендлер SQL-запросов}
+
+\begin{listing}[H]
+    \gofile[firstline=33, lastline=52, firstnumber=33, autogobble]{../main.go}
+    \caption{Хендлер SQL-Запросов (часть 1)}
+    \label{lst:queries1}
+\end{listing}
+
+\begin{listing}[H]
+    \gofile[firstline=53, lastline=72, firstnumber=53, autogobble]{../main.go}
+    \caption{Хендлер SQL-Запросов (часть 2)}
+    \label{lst:queries2}
+\end{listing}
+
+Функция \texttt{Queries} (листинги \ref{lst:queries1}, \ref{lst:queries2}) работает аналогично функции \texttt{Root}, однако помимо темплейта она также принимает
+объект типа \texttt{pgxConnPool}, служащий для выполнения SQL запросов.
+
+В случае получения запроса \texttt{GET}, в ней выполняются следующие шаги:
+\begin{enumerate}
+    \item Получение идентификатора операции \texttt{opId} из Query HTTP-запроса;
+    \item Формирование объекта структуры \texttt{Response} и переменной для ошибок \texttt{err};
+    \item Выполнение функции \texttt{execQuery}, перезаписывающей переменные \texttt{resp} и \texttt{err} и принимающей пул запросов и сам SQL-запрос;
+    \item Запись идентификатора операции в параметр \texttt{Type} переменной \texttt{resp};
+    \item Обработка ошибки, возникшей при выполнении функции \texttt{execQuery};
+    \item Сборка и отправка итогового HTML-документа, обработка ошибки.
+\end{enumerate}
+
+\begin{listing}
+    \gofile[firstline=12, lastline=15, firstnumber=12, autogobble]{../main.go}
+    \caption{Структура, используемая для HTTP-ответа}
+    \label{lst:response}
+\end{listing}
+
+Структура HTTP-ответа (листинг \ref{lst:response}) содержит в себе следующие поля:
+\begin{itemize}
+    \item \texttt{Type} типа \texttt{string}. Хранит в себе идентификатор операции;
+    \item \texttt{Rows} типа \texttt{any}. Хранит в себе сами SQL-ответы. Тип any обусловлен тем, что все три запроса имеют разную структуру ответа.
+\end{itemize}
+
+\begin{listing}
+    \gofile[firstline=74, lastline=93, firstnumber=74]{../main.go}
+    \caption{Вспомогательная функция execQuery}
+    \label{lst:execQuery}
+\end{listing}
+
+Функция \texttt{execQuery} (листинг \ref{lst:execQuery}) используется для выполнения SQL запросов.
+В качестве аргументов она принимает пул соединений СУБД и сам запрос.
+Возвращает объект структуры \texttt{Response} и сообщение об ошибке.
+В первых строках выполняется сам SQL запрос и обрабатывается ошибка.
+В случае её возникновения функция завершается и возвращает полученную ошибку.
+
+Далее создается массив \texttt{rows}, хранящий строки ответа.
+В цикле \texttt{for} при помощи метода \texttt{exec.Next()} проверяется, остались ли ещё в ответе необработанные строки.
+Каждая строка кодируется в массив значений при помощи \texttt{exec.Values()}, обрабатывается ошибка, и в случае успеха
+значения записываются в массив \texttt{rows}.
+
+Далее SQL-запрос завершается, формируется ответ, и происходит возврат из функции.

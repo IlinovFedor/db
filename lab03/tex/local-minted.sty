@@ -5,16 +5,22 @@
 \usepackage{minted}
 
 % Сюда вставлять общие опции
-\def\mintedoptions{linenos,frame=single,fontsize=\footnotesize,style=bw,fontfamily=cyrillicfontttnoftr}
+\def\mintedoptions{breaklines=true,linenos,frame=single,fontsize=\footnotesize,style=bw,fontfamily=cyrillicfontttnoftr,autogobble}
 
 % Сюда пихать новые языки
 \newcommand{\makenewmintedenviromnents}[1]{%
   \newminted{c}{#1}%
   \newminted{ebnf}{#1}%
   \newminted{python}{#1}%
+  \newminted{go}{#1}%
+  \newminted{sql}{#1}%
+  \newminted{html}{#1}%
   \newmintedfile{c}{#1}%
   \newmintedfile{ebnf}{#1}%
   \newmintedfile{python}{#1}%
+  \newmintedfile{go}{#1}%
+  \newmintedfile{sql}{#1}%
+  \newmintedfile{html}{#1}%
 }
 
 % Магия! Здесь происходит непосредственное определение всех окружений

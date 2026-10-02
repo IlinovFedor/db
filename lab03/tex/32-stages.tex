@@ -1,0 +1,76 @@
+\section{Проектирование и разработка веб-интерфейса}
+
+Как уже было сказано ранее, сервис реализует принцип Server-Side Render.
+Для работы с полученными сервером данными используются специальные операнды и операции, заключенные
+в двойные фигурные скобки.
+
+\begin{listing}[h]
+    \htmlfile[firstline=1, lastline=7, firstnumber=1]{../index.html}
+    \caption{Начало HTML-документа}
+    \label{lst:html-file-beginning}
+\end{listing}
+
+В начале документа указываются (листинг \ref{lst:html-file-beginning}):
+\begin{enumerate}
+    \item Тип документа --- HTML;
+    \item Язык документа --- русский;
+    \item Технические параметры для браузера:
+    \begin{enumerate}
+        \item Кодировка UTF-8 для поддержки кириллицы;
+        \item Заголовок страницы;
+        \item Подключается файл стилей pico.classes.min.css.
+    \end{enumerate}
+\end{enumerate}
+
+\begin{listing}[h]
+    \htmlfile[firstline=9, lastline=13, firstnumber=9]{../index.html}
+    \caption{Заголовки страницы}
+    \label{lst:html-header}
+\end{listing}
+
+В начале тела контейнера main указываются заголовки страницы (листинг \ref{lst:html-header}):
+\begin{enumerate}
+    \item Дисциплина и номер работы;
+    \item Группа и ФИО студента.
+\end{enumerate}
+
+\begin{listing}[h]
+    \htmlfile[firstline=15, lastline=32, firstnumber=15]{../index.html}
+    \caption{Первый артикль}
+    \label{lst:html-article1}
+\end{listing}
+
+В первом артикле документа создаются кнопки, используемые для вызова SQL-запросов (листинг \ref{lst:html-article1}):
+\begin{enumerate}
+    \item Строки \texttt{<form action="/query" method="get">} определяют путь запроса и его метод;
+    \item Строки \texttt{<input type="hidden" name="opId"};
+    \texttt{value="<идентификатор\_операции>">} создают query-параметр \texttt{opId} и присваивают ему значение равное идентификатору операции;
+    \item Объекты \texttt{<button type="submit">} создают кнопки и надписи на них.
+\end{enumerate}
+
+\begin{listing}[h]
+    \htmlfile[firstline=34, lastline=67, firstnumber=34]{../index.html}
+    \caption{Логика формирования таблицы}
+    \label{lst:html-article2}
+\end{listing}
+
+Во втором артикле реализована логика формирования таблицы SQL-запросов (листинг \ref{lst:html-article2}).
+
+Используются элементы \texttt{<table>}, \texttt{<thead>} для инициализации таблицы и заголовков её столбцов.
+
+Далее в двойных фигурных скобках проверяется условие: если поле типа структуры, полученной в результате выполнения,
+равен единице, то при помощи элементов \texttt{<th>} создаются заголовки:
+фамилия, имя, отчество, номер телефона, зарплата.
+
+В ином случае, если тип равен двум:
+фамилия, имя, отчество, адрес.
+
+В ином случае, если тип равен трем:
+фамилия, имя, отчество, дата найма.
+
+В ином случае вместо заголовков пишется строка <<Нажмите кнопку>>.
+
+Далее срабатывает цикл \texttt{\{\{ range .Rows \}\}}, который используется для перебора всех элементов массива Rows.
+Для каждого элемента создается блок \texttt{<tr>}, инициализирующий строку таблицы.
+Внутри каждого блока при помощи цикла \texttt{\{\{ range . \}\}} перебираются все элементы строки и при помощи
+\texttt{<td>} записываются по очереди в каждую ячейку строки.

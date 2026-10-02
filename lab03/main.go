@@ -21,10 +21,11 @@ func Root(htmlTemplate *template.Template) http.HandlerFunc {
 			err := htmlTemplate.Execute(writer, nil)
 			if err != nil {
 				slog.Error("cannot execute template", err)
-				writer.WriteHeader(http.StatusInternalServerError)
+				writer.WriteHeader(
+					http.StatusInternalServerError)
 			}
 		default:
-			writer.WriteHeader(http.StatusNotImplemented)
+			writer.WriteHeader(http.StatusMethodNotAllowed)
 		}
 	}
 }
@@ -38,37 +39,39 @@ func Queries(htmlTemplate *template.Template, pool *pgx.ConnPool) http.HandlerFu
 			var err error
 			switch opId {
 			case "1":
-				resp, err = query1(
+				resp, err = execQuery(
 					pool,
 					"SELECT last_name, first_name, middle_name, phone_number, salary FROM lab2_employee_ilinov ORDER BY last_name, middle_name, first_name;")
 			case "2":
-				resp, err = query1(
+				resp, err = execQuery(
 					pool,
 					"SELECT last_name, first_name, middle_name, address FROM lab2_employee_ilinov ORDER BY address, last_name, middle_name, first_name;")
 			case "3":
-				resp, err = query1(
+				resp, err = execQuery(
 					pool,
 					"SELECT last_name, first_name, middle_name, date_start FROM lab2_employee_ilinov WHERE extract(days from now() - date_start) / 365 > 4 ORDER BY last_name, middle_name, first_name;")
 			}
 			resp.Type = opId
 			if err != nil {
 				slog.Error("cannot get query", slog.Any("error", err), slog.Any("queryId", opId))
-				writer.WriteHeader(http.StatusInternalServerError)
+				writer.WriteHeader(
+					http.StatusInternalServerError)
 				return
 			}
 
 			if err := htmlTemplate.Execute(writer, resp); err != nil {
 				slog.Error("cannot execute template", err)
-				writer.WriteHeader(http.StatusInternalServerError)
+				writer.WriteHeader(
+					http.StatusInternalServerError)
 				return
 			}
 		default:
-			writer.WriteHeader(http.StatusNotImplemented)
+			writer.WriteHeader(http.StatusMethodNotAllowed)
 		}
 	}
 }
 
-func query1(pool *pgx.ConnPool, query string) (*Response, error) {
+func execQuery(pool *pgx.ConnPool, query string) (*Response, error) {
 	exec, err := pool.Query(query)
 	if err != nil {
 		return nil, err
