@@ -1,4 +1,4 @@
-\begin{thebibliography}{}
+\begin{thebibliography}{1}
 \def\selectlanguageifdefined#1{
 \expandafter\ifx\csname date#1\endcsname\relax
 \else\selectlanguage{#1}\fi}
@@ -13,5 +13,37 @@
   0.1em\fi
 \cyrdash\hskip.2em plus 0.1em\ignorespaces}
 \renewcommand{\newblock}{\ignorespaces}
+
+\bibitem{doc:postgres}
+\selectlanguageifdefined{russian}
+Documentation~PostgreSQL~18.6. The PostgreSQL Global Development Group.
+  \BibDash
+\newblock 2026. \BibDash
+\newblock {Режим доступа}:
+  \BibUrl{https://www.postgresql.org/files/documentation/pdf/18/postgresql-18-A4.pdf}
+  ({дата обращения}: 01.09.2026).
+
+\bibitem{wiki:http}
+\selectlanguageifdefined{russian}
+Wikipedia. HTTP. \BibDash
+\newblock 2026. \BibDash
+\newblock {Режим доступа}:
+  \BibUrl{https://en.wikipedia.org/wiki/HTTP} ({дата обращения}:
+  01.09.2026).
+
+\bibitem{wiki:html}
+\selectlanguageifdefined{russian}
+Mozilla. HTML: HyperText Markup Language. \BibDash
+\newblock 2026. \BibDash
+\newblock {Режим доступа}:
+  \BibUrl{https://developer.mozilla.org/en-US/docs/Web/HTML} ({дата
+  обращения}: 01.09.2026).
+
+\bibitem{wiki:go}
+\selectlanguageifdefined{russian}
+Google. The Go Programming Language. \BibDash
+\newblock 2026. \BibDash
+\newblock {Режим доступа}: \BibUrl{https://go.dev/} ({дата
+  обращения}: 01.09.2026).
 
 \end{thebibliography}
