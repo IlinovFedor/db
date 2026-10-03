@@ -46,4 +46,11 @@ Google. The Go Programming Language. \BibDash
 \newblock {Режим доступа}: \BibUrl{https://go.dev/} ({дата
   обращения}: 01.09.2026).
 
+\bibitem{wiki:pico.css}
+\selectlanguageifdefined{russian}
+Larroche~Lucas. Pico CSS • Minimal CSS Framework for semantic HTML. \BibDash
+\newblock 2026. \BibDash
+\newblock {Режим доступа}: \BibUrl{https://picocss.com/} ({дата
+  обращения}: 01.09.2026).
+
 \end{thebibliography}

@@ -4,13 +4,8 @@
 Для работы с полученными сервером данными используются специальные операнды и операции, заключенные
 в двойные фигурные скобки.
 
-\begin{listing}[h]
-    \htmlfile[firstline=1, lastline=7, firstnumber=1]{../index.html}
-    \caption{Начало HTML-документа}
-    \label{lst:html-file-beginning}
-\end{listing}
-
 В начале документа указываются (листинг \ref{lst:html-file-beginning}):
+
 \begin{enumerate}
     \item Тип документа --- HTML;
     \item Язык документа --- русский;
@@ -22,25 +17,31 @@
     \end{enumerate}
 \end{enumerate}
 
+
+\begin{listing}[h]
+    \htmlfile[firstline=1, lastline=7, firstnumber=1]{../index.html}
+    \caption{Начало HTML-документа}
+    \label{lst:html-file-beginning}
+\end{listing}
+
+
+В начале тела контейнера main указываются заголовки страницы (листинг \ref{lst:html-header}):
+
+\begin{enumerate}
+    \item Дисциплина и номер работы;
+    \item Группа и ФИО студента.
+\end{enumerate}
+
+
 \begin{listing}[h]
     \htmlfile[firstline=9, lastline=13, firstnumber=9]{../index.html}
     \caption{Заголовки страницы}
     \label{lst:html-header}
 \end{listing}
 
-В начале тела контейнера main указываются заголовки страницы (листинг \ref{lst:html-header}):
-\begin{enumerate}
-    \item Дисциплина и номер работы;
-    \item Группа и ФИО студента.
-\end{enumerate}
 
-\begin{listing}[h]
-    \htmlfile[firstline=15, lastline=32, firstnumber=15]{../index.html}
-    \caption{Первый артикль}
-    \label{lst:html-article1}
-\end{listing}
+В первом блоке \texttt{article} создаются кнопки, используемые для вызова SQL-запросов (листинг \ref{lst:html-article1}):
 
-В первом артикле документа создаются кнопки, используемые для вызова SQL-запросов (листинг \ref{lst:html-article1}):
 \begin{enumerate}
     \item Строки \texttt{<form action="/query" method="get">} определяют путь запроса и его метод;
     \item Строки \texttt{<input type="hidden" name="opId"};
@@ -48,18 +49,25 @@
     \item Объекты \texttt{<button type="submit">} создают кнопки и надписи на них.
 \end{enumerate}
 
+
 \begin{listing}[h]
+    \htmlfile[firstline=15, lastline=32, firstnumber=15]{../index.html}
+    \caption{Первый блок \texttt{article}}
+    \label{lst:html-article1}
+\end{listing}
+
+Во втором блоке \texttt{article} реализована логика формирования таблицы SQL-запросов (листинг \ref{lst:html-article2}).
+
+\begin{listing}[H]
     \htmlfile[firstline=34, lastline=67, firstnumber=34]{../index.html}
     \caption{Логика формирования таблицы}
     \label{lst:html-article2}
 \end{listing}
 
-Во втором артикле реализована логика формирования таблицы SQL-запросов (листинг \ref{lst:html-article2}).
-
 Используются элементы \texttt{<table>}, \texttt{<thead>} для инициализации таблицы и заголовков её столбцов.
 
-Далее в двойных фигурных скобках проверяется условие: если поле типа структуры, полученной в результате выполнения,
-равен единице, то при помощи элементов \texttt{<th>} создаются заголовки:
+Далее в двойных фигурных скобках проверяется условие: если поле \texttt{Type} структуры, полученной в результате выполнения,
+равно единице, то при помощи элементов \texttt{<th>} создаются заголовки:
 фамилия, имя, отчество, номер телефона, зарплата.
 
 В ином случае, если тип равен двум:
