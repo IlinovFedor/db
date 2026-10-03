@@ -40,20 +40,18 @@
                 <th>Отчество</th>
                 <th>Номер телефона</th>
                 <th>Зарплата</th>
-                {{ else }} {{ if eq .Type "2" }}
+                {{ else  if eq .Type "2" }}
                     <th>Фамилия</th>
                     <th>Имя</th>
                     <th>Отчество</th>
                     <th>Адрес</th>
-                    {{ else }} {{ if eq .Type "3" }}
+                    {{ else  if eq .Type "3" }}
                         <th>Фамилия</th>
                         <th>Имя</th>
                         <th>Отчество</th>
                         <th>Дата найма</th>
                         {{ else }}
                     Нажмите кнопку
-                    {{ end }}
-                {{ end }}
             {{ end }}
             </thead>
             {{ range .Rows }}

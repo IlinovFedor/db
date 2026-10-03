@@ -44,7 +44,7 @@ func Queries(htmlTemplate *template.Template, pool *pgx.ConnPool) http.HandlerFu
 		case "3":
 			resp, err = execQuery(
 				pool,
-				"SELECT last_name, first_name, middle_name, date_start FROM lab2_employee_ilinov WHERE extract(days from now() - date_start) / 365 > 4 ORDER BY last_name, middle_name, first_name;")
+				"SELECT last_name, first_name, middle_name, to_char(date_start, 'DD.MM.YYYY') FROM lab2_employee_ilinov WHERE extract(days from now() - date_start) / 365 > 4 ORDER BY last_name, middle_name, first_name;")
 		default:
 			writer.WriteHeader(http.StatusBadRequest)
 			return

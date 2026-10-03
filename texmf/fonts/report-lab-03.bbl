@@ -25,11 +25,11 @@ Documentation~PostgreSQL~18.6. The PostgreSQL Global Development Group.
 
 \bibitem{wiki:http}
 \selectlanguageifdefined{russian}
-Wikipedia. HTTP. \BibDash
+Mozilla. HTTP: Hypertext Transfer Protocol. \BibDash
 \newblock 2026. \BibDash
 \newblock {Режим доступа}:
-  \BibUrl{https://en.wikipedia.org/wiki/HTTP} ({дата обращения}:
-  01.09.2026).
+  \BibUrl{https://developer.mozilla.org/en-US/docs/Web/HTTP} ({дата
+  обращения}: 01.09.2026).
 
 \bibitem{wiki:html}
 \selectlanguageifdefined{russian}
@@ -45,6 +45,13 @@ Google. The Go Programming Language. \BibDash
 \newblock 2026. \BibDash
 \newblock {Режим доступа}: \BibUrl{https://go.dev/} ({дата
   обращения}: 01.09.2026).
+
+\bibitem{git:pgx}
+\selectlanguageifdefined{russian}
+jackc. pgx - PostgreSQL Driver and Toolkit. \BibDash
+\newblock 2026. \BibDash
+\newblock {Режим доступа}: \BibUrl{https://github.com/jackc/pgx}
+  ({дата обращения}: 01.09.2026).
 
 \bibitem{wiki:pico.css}
 \selectlanguageifdefined{russian}

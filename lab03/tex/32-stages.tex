@@ -1,6 +1,6 @@
 \section{Проектирование и разработка веб-интерфейса}
 
-Как уже было сказано ранее, сервис реализует принцип Server-Side Render.
+Как уже было сказано ранее, сервис реализует принцип Server-Side Rendering.
 Для работы с полученными сервером данными используются специальные операнды и операции, заключенные
 в двойные фигурные скобки.
 
@@ -13,7 +13,7 @@
     \begin{enumerate}
         \item Кодировка UTF-8 для поддержки кириллицы;
         \item Заголовок страницы;
-        \item Подключается файл стилей pico.classless.min.css.
+        \item Подключается файл стилей \texttt{pico.classless.min.css}.
     \end{enumerate}
 \end{enumerate}
 
@@ -43,8 +43,8 @@
 В первом блоке \texttt{article} создаются кнопки, используемые для вызова SQL-запросов (листинг \ref{lst:html-article1}):
 
 \begin{enumerate}
-    \item Строки \texttt{<form action="/query" method="get">} определяют путь запроса и его метод;
-    \item Строки \texttt{<input type="hidden" name="opId"};
+    \item Блоки \texttt{<form action="/query" method="get">} определяют путь запроса и его метод;
+    \item Блоки \texttt{<input type="hidden" name="opId"};
     \texttt{value="<идентификатор\_операции>">} создают query-параметр \texttt{opId} и присваивают ему значение равное идентификатору операции;
     \item Объекты \texttt{<button type="submit">} создают кнопки и надписи на них.
 \end{enumerate}
