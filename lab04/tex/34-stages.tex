@@ -1,0 +1,64 @@
+\section{Реализация команд DML}
+\label{sec:dml}
+
+Команды Data Manipulation Language предназначены для добавления, изменения и удаления кортежей. В приложении поддерживаются три базовые операции: \texttt{INSERT INTO}, \texttt{UPDATE} и \texttt{DELETE}.
+
+\subsection{Пакетная вставка записей: POST /dml/insert}
+
+Добавление кортежей организовано в два шага:
+\begin{enumerate}
+    \item первый шаг: пользователь выбирает целевую таблицу из выпадающего списка и указывает количество добавляемых строк;
+    \item второй шаг: сервер генерирует табличную сетку ввода, где каждый столбец соответствует реальному атрибуту таблицы из \texttt{information\_schema}, а строки нумеруются функцией \texttt{seq}.
+\end{enumerate}
+
+Фрагмент генерации сетки ввода приведен в листинге~\ref{lst:dml-insert-form}.
+
+\begin{listing}[H]
+    \htmlfile[firstline=36, lastline=62, firstnumber=36]{../templates/dml.html}
+    \caption{Генерация динамической сетки ввода кортежей в \texttt{templates/dml.html}}
+    \label{lst:dml-insert-form}
+\end{listing}
+
+При отправке данных обработчик \texttt{InsertHandler} вызывает функцию \texttt{parseInsertRows} (листинг~\ref{lst:parse-insert-rows}), формирующую списки значений.
+
+\begin{listing}[H]
+    \gofile[firstline=40, lastline=60, firstnumber=40]{../handlers_dml.go}
+    \caption{Парсинг многострочных кортежей и экранирование в \texttt{handlers\_dml.go}}
+    \label{lst:parse-insert-rows}
+\end{listing}
+
+Если значение ячейки оставлено пустым, оно преобразуется в ключевое слово \texttt{NULL}. Непустые значения экранируются функцией \texttt{quoteLiteral}. В результате формируется пакетный SQL-запрос с перечислением нескольких кортежей через запятую (листинг~\ref{lst:exec-insert}).
+
+\begin{listing}[H]
+    \gofile[firstline=148, lastline=160, firstnumber=148]{../handlers_dml.go}
+    \caption{Сборка и выполнение пакетного запроса \texttt{INSERT INTO}}
+    \label{lst:exec-insert}
+\end{listing}
+
+\subsection{Модификация данных: стек вызова POST /dml/update}
+
+Изменение данных реализуется обработчиком \texttt{UpdateHandler} (листинг~\ref{lst:update-handler}).
+
+\begin{listing}[H]
+    \gofile[firstline=189, lastline=202, firstnumber=189]{../handlers_dml.go}
+    \caption{Конструирование и выполнение команды \texttt{UPDATE}}
+    \label{lst:update-handler}
+\end{listing}
+
+Пользователь указывает имя таблицы, целевую колонку, новое строковое значение, а также условие фильтрации. Условия WHERE конструируется вспомогательной функцией \texttt{buildSimpleWhere} (листинг~\ref{lst:build-where}).
+
+\begin{listing}[H]
+    \gofile[firstline=156, lastline=164, firstnumber=156]{../db.go}
+    \caption{Конструирование предиката WHERE в \texttt{db.go}}
+    \label{lst:build-where}
+\end{listing}
+
+\subsection{Удаление данных: стек вызова POST /dml/delete}
+
+Удаление строк выполняется обработчиком \texttt{DeleteHandler} (листинг~\ref{lst:delete-handler}).
+
+\begin{listing}[H]
+    \gofile[firstline=227, lastline=236, firstnumber=227]{../handlers_dml.go}
+    \caption{Конструирование и выполнение команды \texttt{DELETE FROM}}
+    \label{lst:delete-handler}
+\end{listing}

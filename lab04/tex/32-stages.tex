@@ -1,0 +1,60 @@
+\section{Динамическое получение метаданных PostgreSQL и просмотр таблиц}
+\label{sec:introspection}
+
+В отличие от статических приложений, где структура таблиц зафиксирована в структурах данных языка программирования, разрабатываемый веб-сервис должен уметь взаимодействовать с произвольными таблицами, создаваемыми пользователем в рантайме. Для этого реализовано динамическое получение метаданных СУБД.
+
+\subsection{Чтение системного каталога information\_schema}
+
+Получение перечня пользовательских таблиц и описания их столбцов выполняется посредством запросов к стандартным системным представлениям \texttt{information\_schema} СУБД PostgreSQL.
+
+Для получения списка базовых таблиц публичной схемы используется SQL-запрос из файла \texttt{get\_tables.sql} (листинг~\ref{lst:sql-get-tables}).
+
+\begin{listing}[H]
+    \sqlfile[firstline=1, lastline=4, firstnumber=1]{../sql/get_tables.sql}
+    \caption{Запрос списка пользовательских таблиц из \texttt{information\_schema.tables}}
+    \label{lst:sql-get-tables}
+\end{listing}
+
+Условие \texttt{table\_schema = 'public'} исключает системные таблицы СУБД, а предикат \texttt{table\_type = 'BASE TABLE'} фильтрует виртуальные представления (VIEW).
+
+Для чтения структуры выбранной таблицы используется параметризованный запрос из файла \texttt{get\_columns.sql} (листинг~\ref{lst:sql-get-columns}).
+
+\begin{listing}[H]
+    \sqlfile[firstline=1, lastline=4, firstnumber=1]{../sql/get_columns.sql}
+    \caption{Запрос описания колонок таблицы из \texttt{information\_schema.columns}}
+    \label{lst:sql-get-columns}
+\end{listing}
+
+Запрос возвращает имена атрибутов и их типы данных (\texttt{data\_type}), упорядоченные по физическому положению в таблице (\texttt{ordinal\_position}).
+
+\subsection{GET /tables}
+
+Просмотр содержимого таблиц инициируется запросом по маршруту \texttt{GET /tables} (для вывода всех таблиц) или \texttt{GET /tables/\{name\}} (для выбранной таблицы). Логика обработки сосредоточена в функции \texttt{HandleTables} (листинг~\ref{lst:handle-tables}).
+
+\begin{listing}[H]
+    \gofile[firstline=9, lastline=40, firstnumber=9]{../handlers_tables.go}
+    \caption{Обработчик страницы просмотра таблиц в \texttt{handlers\_tables.go}}
+    \label{lst:handle-tables}
+\end{listing}
+
+В строке 11 вызывается функция \texttt{newBasePage}, наполняющая навигационный выпадающий список актуальным перечнем таблиц из каталога СУБД. Если конкретная таблица не выбрана, вызывается \texttt{getAllTablesData}, опрашивающая каждую таблицу по очереди.
+
+Поскольку схема возвращаемых данных заранее неизвестна, в файле \texttt{db.go} реализована функция \texttt{scanRowsToTableData} (листинг~\ref{lst:scan-rows}).
+
+\begin{listing}[H]
+    \gofile[firstline=125, lastline=154, firstnumber=125]{../db.go}
+    \caption{Динамическое чтение метаданных выборки и значений кортежей}
+    \label{lst:scan-rows}
+\end{listing}
+
+Метод \texttt{rows.FieldDescriptions()} извлекает названия колонок из заголовка ответа PostgreSQL, а метод \texttt{rows.Values()} считывает кортеж значений в обобщенный слайс \texttt{[]any}. Значения даты и времени (\texttt{time.Time}) приводятся к стандартизированному строковому виду \texttt{"YYYY-MM-DD"}.
+
+Полученная структура \texttt{TableData} передается в шаблон \texttt{tables.html} (листинг~\ref{lst:tables-html}), где выполняется отрисовка HTML-таблицы.
+
+\begin{listing}[H]
+    \htmlfile[firstline=20, lastline=41, firstnumber=20]{../templates/tables.html}
+    \caption{Отрисовка динамической таблицы в \texttt{templates/tables.html}}
+    \label{lst:tables-html}
+\end{listing}
+
+Цикл \texttt{\{\{ range .Columns \}\}} генерирует заголовки таблицы (\texttt{<th>}), а вложенный цикл \texttt{\{\{ range .Rows \}\}} итерирует строки и ячейки (\texttt{<td>}).

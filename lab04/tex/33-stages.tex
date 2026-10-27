@@ -1,0 +1,77 @@
+\section{Реализация команд DDL}
+\label{sec:ddl}
+
+Команды Data Definition Language отвечают за создание, модификацию и удаление объектов базы данных. В веб-приложении операции DDL сгруппированы по маршруту \texttt{/ddl/\{op\}} со следующими режимами: \texttt{create}, \texttt{alter}, \texttt{truncate}, \texttt{drop}.
+
+\subsection{Создание таблиц: POST /ddl/create}
+
+Процесс создания таблицы разделен на два логических шага:
+\begin{enumerate}
+    \item первый шаг: пользователь указывает желаемое количество столбцов будущей таблицы;
+    \item второй шаг: динамически строится форма с полями конфигурации каждого столбца: наименование, тип данных PostgreSQL (\texttt{INTEGER}, \texttt{TEXT}, \texttt{BOOLEAN}, \texttt{DATE}), признак допустимости NULL значений (\texttt{Nullable}), выбор первичного ключа (\texttt{PRIMARY KEY}) и параметры внешнего ключа (\texttt{FOREIGN KEY}).
+\end{enumerate}
+
+Фрагмент формы второго шага приведен в листинге~\ref{lst:ddl-create-form}.
+
+\begin{listing}[H]
+    \htmlfile[firstline=23, lastline=44, firstnumber=23]{../templates/ddl.html}
+    \caption{Динамическая форма настройки колонок таблицы в \texttt{templates/ddl.html}}
+    \label{lst:ddl-create-form}
+\end{listing}
+
+При отправке формы запрос поступает на эндпоинт \texttt{POST /ddl/create}, где запускается парсер параметров \texttt{parseCreateColumns} (листинг~\ref{lst:parse-create-cols}).
+
+\begin{listing}[H]
+    \gofile[firstline=34, lastline=52, firstnumber=34]{../handlers_ddl.go}
+    \caption{Парсинг полей и первичного ключа в \texttt{handlers\_ddl.go}}
+    \label{lst:parse-create-cols}
+\end{listing}
+
+Особое внимание уделено поддержке самоссылающихся внешних ключей (префикс \texttt{\_\_self\_\_}), когда столбец ссылается на первичный ключ этой же создаваемой таблицы.
+
+После формирования списка столбцов обработчик \texttt{CreateTableHandler} формирует итоговый SQL-запрос и передает его СУБД (листинг~\ref{lst:create-table-exec}).
+
+\begin{listing}[H]
+    \gofile[firstline=228, lastline=243, firstnumber=228]{../handlers_ddl.go}
+    \caption{Сборка и выполнение запроса \texttt{CREATE TABLE}}
+    \label{lst:create-table-exec}
+\end{listing}
+
+В случае успешного исполнения запроса клиент перенаправляется на страницу созданной таблицы \texttt{/tables/\{name\}}. При ошибке форма отображается повторно с сохранением введенных данных и выводом сообщения сервера СУБД.
+
+\subsection{Модификация схемы: POST /ddl/alter}
+
+Операция изменения структуры таблицы реализуется обработчиком \texttt{AlterTableHandler} (листинг~\ref{lst:alter-table-exec}).
+
+\begin{listing}[H]
+    \gofile[firstline=277, lastline=302, firstnumber=277]{../handlers_ddl.go}
+    \caption{Сборка и исполнение команд \texttt{ALTER TABLE}}
+    \label{lst:alter-table-exec}
+\end{listing}
+
+Поддерживаются три сценария:
+\begin{enumerate}
+    \item добавление нового столбца;
+    \item изменение типа существующего столбца;
+    \item удаление столбца.
+\end{enumerate}
+
+\subsection{Очистка и удаление таблиц: TRUNCATE и DROP}
+
+Для быстрого удаления всех записей таблицы без разрушения ее схемы используется обработчик \texttt{TruncateTableHandler} (листинг~\ref{lst:truncate-exec}).
+
+\begin{listing}[H]
+    \gofile[firstline=304, lastline=323, firstnumber=304]{../handlers_ddl.go}
+    \caption{Сборка и исполнение команды \texttt{TRUNCATE TABLE}}
+    \label{lst:truncate-exec}
+\end{listing}
+
+Удаление сущности целиком выполняется обработчиком \texttt{DropTableHandler} (листинг~\ref{lst:drop-exec}).
+
+\begin{listing}[H]
+    \gofile[firstline=325, lastline=344, firstnumber=325]{../handlers_ddl.go}
+    \caption{Сборка и исполнение команды \texttt{DROP TABLE}}
+    \label{lst:drop-exec}
+\end{listing}
+
+Указание ключевого слова \texttt{CASCADE} предотвращает блокировку операции СУБД в случаях, когда на удаляемую таблицу ссылаются внешние ключи других отношений.

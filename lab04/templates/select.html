@@ -1,0 +1,115 @@
+{{ define "content" }}
+<article>
+    <h3>SELECT</h3>
+    <form action="/select" method="get">
+        <label>
+            Table:
+            <select name="table" onchange="this.form.submit()">
+                {{ range .Tables }}
+                <option value="{{ . }}" {{ if eqStr . $.SelectTable }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </select>
+        </label>
+    </form>
+
+    <form action="/query/select" method="post">
+        <input type="hidden" name="table" value="{{ .SelectTable }}">
+
+        <h4>WHERE:</h4>
+        <figure>
+            <table>
+                <thead>
+                    <tr>
+                        <th>NAME</th>
+                        <th>Is included</th>
+                        <th>Is in WHERE</th>
+                        <th>Operation</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .SelectColumns }}
+                    <tr>
+                        <td><strong>{{ .Name }}</strong> <small>({{ .DataType }})</small></td>
+                        <td>
+                            <input type="checkbox" name="inc_{{ .Name }}" value="1" checked>
+                        </td>
+                        <td>
+                            <input type="checkbox" name="where_en_{{ .Name }}" value="1">
+                        </td>
+                        <td>
+                            <select name="where_op_{{ .Name }}">
+                                <option value="=">=</option>
+                                <option value="<>">&lt;&gt;</option>
+                                <option value="<">&lt;</option>
+                                <option value=">">&gt;</option>
+                                <option value="<=">&lt;=</option>
+                                <option value=">=">&gt;=</option>
+                                <option value="LIKE">LIKE (%val%)</option>
+                                <option value="ILIKE">ILIKE (%val%)</option>
+                                <option value="IN">IN (comma-separated list)</option>
+                                <option value="NOT IN">NOT IN (comma-separated list)</option>
+                                <option value="IS NULL">IS NULL</option>
+                                <option value="IS NOT NULL">IS NOT NULL</option>
+                            </select>
+                        </td>
+                        <td>
+                            <input type="text" name="where_val_{{ .Name }}" placeholder="Filter value">
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </figure>
+
+        <h4>ORDER BY</h4>
+        <div class="grid">
+            <label>
+                Column:
+                <select name="order_by">
+                    <option value="none">Without ORDER BY</option>
+                    {{ range .SelectColumns }}
+                    <option value="{{ .Name }}">{{ .Name }}</option>
+                    {{ end }}
+                </select>
+            </label>
+            <label>
+                ASC/DESC:
+                <select name="order_dir">
+                    <option value="ASC">ASC</option>
+                    <option value="DESC">DESC</option>
+                </select>
+            </label>
+        </div>
+
+        <button type="submit">SELECT</button>
+    </form>
+
+    {{ if .QueryResult }}
+    <hr>
+    <h4>Result</h4>
+    <figure>
+        <table>
+            <thead>
+                <tr>
+                    {{ range .QueryResult.Columns }}
+                    <th>{{ . }}</th>
+                    {{ end }}
+                </tr>
+            </thead>
+            <tbody>
+                {{ range .QueryResult.Rows }}
+                <tr>
+                    {{ range . }}
+                    <td>{{ . }}</td>
+                    {{ end }}
+                </tr>
+                {{ else }}
+                <tr><td colspan="{{ len .QueryResult.Columns }}"><em>Empty</em></td></tr>
+                {{ end }}
+            </tbody>
+        </table>
+    </figure>
+    {{ end }}
+</article>
+{{ end }}

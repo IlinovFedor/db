@@ -1,0 +1,43 @@
+\section{Реализация выборок и соединений (DQL)}
+\label{sec:dql}
+
+В приложении представлены два ключевых механизма: \texttt{SELECT} и \texttt{INNER JOIN}.
+
+\subsection{Параметризованная выборка: POST /query/select}
+
+Конструктор выборки \texttt{/select} позволяет пользователю интерактивно настраивать три компонента SQL-запроса:
+\begin{enumerate}
+    \item проекция колонок;
+    \item предикаты фильтрации WHERE;
+    \item сортировка ORDER BY.
+\end{enumerate}
+
+Фрагмент формы настройки выборки представлен в листинге~\ref{lst:select-form}.
+
+\begin{listing}[H]
+    \htmlfile[firstline=19, lastline=39, firstnumber=19]{../templates/select.html}
+    \caption{Интерактивный конструктор выборки в \texttt{templates/select.html}}
+    \label{lst:select-form}
+\end{listing}
+
+Обработка запроса выполняется в функции \texttt{SelectHandler} (листинг~\ref{lst:select-handler}).
+
+\begin{listing}[H]
+    \gofile[firstline=101, lastline=125, firstnumber=101]{../handlers_query.go}
+    \caption{Сборка условий фильтрации, сортировки и запроса в \texttt{handlers\_query.go}}
+    \label{lst:select-handler}
+\end{listing}
+
+Результат запроса считывается методом \texttt{pool.Query(querySQL)}, оборачивается в структуру \texttt{TableData} и отображается пользователю.
+
+\subsection{Внутреннее соединение таблиц: POST /query/join}
+
+Соединение таблиц по маршруту \texttt{/join} демонстрирует операцию внутреннего соединения (\texttt{INNER JOIN}). В качестве демонстрационной схемы используются таблицы \texttt{lab2\_employee\_ilinov} и \texttt{departments}, связанные отношением внешнего ключа: столбец \texttt{department\_id} таблицы сотрудников ссылается на первичный ключ \texttt{id} таблицы отделов.
+
+Обработчик \texttt{JoinHandler} выполняет валидацию и собирает итоговый запрос (листинг~\ref{lst:join-handler}).
+
+\begin{listing}[H]
+    \gofile[firstline=235, lastline=249, firstnumber=235]{../handlers_query.go}
+    \caption{Сборка и исполнение команды \texttt{INNER JOIN} в \texttt{handlers\_query.go}}
+    \label{lst:join-handler}
+\end{listing}

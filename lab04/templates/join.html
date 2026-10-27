@@ -1,0 +1,106 @@
+{{ define "content" }}
+<article>
+    <h3>INNER JOIN</h3>
+    {{ if eq .JoinStep 1 }}
+    <p>Select two tables</p>
+    <form action="/join" method="get">
+        <input type="hidden" name="step" value="2">
+        <div class="grid">
+            <label>
+                <select name="t1" required>
+                    {{ range .Tables }}
+                    <option value="{{ . }}" {{ if eqStr . $.JoinTable1 }}selected{{ end }}>{{ . }}</option>
+                    {{ end }}
+                </select>
+            </label>
+            <label>
+                <select name="t2" required>
+                    {{ range .Tables }}
+                    <option value="{{ . }}" {{ if eqStr . $.JoinTable2 }}selected{{ end }}>{{ . }}</option>
+                    {{ end }}
+                </select>
+            </label>
+        </div>
+        <button type="submit">NEXT</button>
+    </form>
+    {{ else }}
+    <form action="/query/join" method="post">
+        <input type="hidden" name="table1" value="{{ .JoinTable1 }}">
+        <input type="hidden" name="table2" value="{{ .JoinTable2 }}">
+
+        <h4>ON</h4>
+        <div class="grid">
+            <label>
+                Column from <code>{{ .JoinTable1 }}</code>:
+                <select name="join_col1" required>
+                    {{ range .JoinColumns1 }}
+                    <option value="{{ .Name }}" {{ if eqStr .Name "phone_number" }}selected{{ end }}>{{ .Name }}</option>
+                    {{ end }}
+                </select>
+            </label>
+            <label>
+                Column from <code>{{ .JoinTable2 }}</code>:
+                <select name="join_col2" required>
+                    {{ range .JoinColumns2 }}
+                    <option value="{{ .Name }}" {{ if eqStr .Name "phone_number" }}selected{{ end }}>{{ .Name }}</option>
+                    {{ end }}
+                </select>
+            </label>
+        </div>
+
+        <h4>Columns</h4>
+        <div class="grid">
+            <div>
+                <h5>Columns from <code>{{ .JoinTable1 }}</code>:</h5>
+                {{ range .JoinColumns1 }}
+                <label>
+                    <input type="checkbox" name="sel1_{{ .Name }}" value="1" checked>
+                    {{ .Name }} ({{ .DataType }})
+                </label>
+                {{ end }}
+            </div>
+
+            <div>
+                <h5>Columns from <code>{{ .JoinTable2 }}</code>:</h5>
+                {{ range .JoinColumns2 }}
+                <label>
+                    <input type="checkbox" name="sel2_{{ .Name }}" value="1" checked>
+                    {{ .Name }} ({{ .DataType }})
+                </label>
+                {{ end }}
+            </div>
+        </div>
+
+
+        <button type="submit">INNER JOIN</button>
+    </form>
+
+    {{ if .JoinResult }}
+    <hr>
+    <h4>Result</h4>
+    <figure>
+        <table>
+            <thead>
+                <tr>
+                    {{ range .JoinResult.Columns }}
+                    <th>{{ . }}</th>
+                    {{ end }}
+                </tr>
+            </thead>
+            <tbody>
+                {{ range .JoinResult.Rows }}
+                <tr>
+                    {{ range . }}
+                    <td>{{ . }}</td>
+                    {{ end }}
+                </tr>
+                {{ else }}
+                <tr><td colspan="{{ len .JoinResult.Columns }}"><em>Empty</em></td></tr>
+                {{ end }}
+            </tbody>
+        </table>
+    </figure>
+    {{ end }}
+    {{ end }}
+</article>
+{{ end }}

@@ -1,0 +1,182 @@
+{{ define "content" }}
+    <article>
+        <a role="button" href="/dml/insert">INSERT INTO</a>
+        <a role="button" href="/dml/update">UPDATE</a>
+        <a role="button" href="/dml/delete">DELETE</a>
+    </article>
+
+    {{ if eqStr .DMLOp "insert" }}
+        {{ if eq .DMLStep 1 }}
+        <article>
+            <h3>INSERT INTO</h3>
+            <form action="/dml/insert" method="get">
+                <input type="hidden" name="step" value="2">
+                <label>
+                    Table:
+                    <select name="table" required>
+                        {{ range .Tables }}
+                        <option value="{{ . }}" {{ if eqStr . $.SelectedTable }}selected{{ end }}>{{ . }}</option>
+                        {{ end }}
+                    </select>
+                </label>
+                <label>
+                    The number of rows:
+                    <input type="number" name="rows" value="1" min="1" max="10" required>
+                </label>
+                <button type="submit">NEXT</button>
+            </form>
+        </article>
+        {{ else }}
+        <article>
+            <h3>INSERT INTO <code>{{ .SelectedTable }}</code></h3>
+            <form action="/dml/insert" method="post">
+                <input type="hidden" name="table" value="{{ .SelectedTable }}">
+                <input type="hidden" name="row_count" value="{{ .DMLRowCount }}">
+
+                <figure>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                {{ range .TableColumns }}
+                                <th>
+                                    {{ .Name }} {{ .DataType }}
+
+                                </th>
+                                {{ end }}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{ range $r := seq .DMLRowCount }}
+                            <tr>
+                                <td><strong>{{ add $r 1 }}</strong></td>
+                                {{ range $.TableColumns }}
+                                <td>
+                                    <input type="text" name="val_{{ $r }}_{{ .Name }}" value="{{ getRowVal $.InsertRows $r .Name }}" placeholder="{{ .Name }}">
+                                </td>
+                                {{ end }}
+                            </tr>
+                            {{ end }}
+                        </tbody>
+                    </table>
+                </figure>
+
+                    <button type="submit">INSERT INTO</button>
+            </form>
+        </article>
+        {{ end }}
+    {{ else if eqStr .DMLOp "update" }}
+        <article>
+            <h3>UPDATE</h3>
+            <form action="/dml/update" method="get">
+                <label>
+                    Table:
+                    <select name="table" onchange="this.form.submit()">
+                        {{ range .Tables }}
+                        <option value="{{ . }}" {{ if eqStr . $.SelectedTable }}selected{{ end }}>{{ . }}</option>
+                        {{ end }}
+                    </select>
+                </label>
+            </form>
+
+            <form action="/dml/update" method="post">
+                <input type="hidden" name="table" value="{{ .SelectedTable }}">
+
+                <h4>SET</h4>
+                <div class="grid">
+                    <label>
+                        Column:
+                        <select name="set_col" required>
+                            {{ range .TableColumns }}
+                            <option value="{{ .Name }}" {{ if eqStr .Name $.UpdateSetCol }}selected{{ end }}>{{ .Name }} ({{ .DataType }})</option>
+                            {{ end }}
+                        </select>
+                    </label>
+                    <label>
+                        New value:
+                        <input type="text" name="set_val" value="{{ .UpdateSetVal }}" required>
+                    </label>
+                </div>
+
+                <h4>WHERE</h4>
+                <div class="grid">
+                    <label>
+                        Column:
+                        <select name="where_col">
+                            <option value="">Without filter</option>
+                            {{ range .TableColumns }}
+                            <option value="{{ .Name }}" {{ if eqStr .Name $.UpdateWhereCol }}selected{{ end }}>{{ .Name }}</option>
+                            {{ end }}
+                        </select>
+                    </label>
+                    <label>
+                        Operator:
+                        <select name="where_op">
+                            <option value="=" {{ if eqStr $.UpdateWhereOp "=" }}selected{{ end }}>=</option>
+                            <option value="<>" {{ if eqStr $.UpdateWhereOp "<>" }}selected{{ end }}>&lt;&gt;</option>
+                            <option value="<" {{ if eqStr $.UpdateWhereOp "<" }}selected{{ end }}>&lt;</option>
+                            <option value=">" {{ if eqStr $.UpdateWhereOp ">" }}selected{{ end }}>&gt;</option>
+                            <option value="<=" {{ if eqStr $.UpdateWhereOp "<=" }}selected{{ end }}>&lt;=</option>
+                            <option value=">=" {{ if eqStr $.UpdateWhereOp ">=" }}selected{{ end }}>&gt;=</option>
+                            <option value="LIKE" {{ if eqStr $.UpdateWhereOp "LIKE" }}selected{{ end }}>LIKE</option>
+                        </select>
+                    </label>
+                    <label>
+                        Value:
+                        <input type="text" name="where_val" value="{{ .UpdateWhereVal }}">
+                    </label>
+                </div>
+
+                <button type="submit">UPDATE</button>
+            </form>
+        </article>
+    {{ else if eqStr .DMLOp "delete" }}
+        <article>
+            <h3>DELETE FROM</h3>
+            <form action="/dml/delete" method="get">
+                <label>
+                    Table:
+                    <select name="table" onchange="this.form.submit()">
+                        {{ range .Tables }}
+                        <option value="{{ . }}" {{ if eqStr . $.SelectedTable }}selected{{ end }}>{{ . }}</option>
+                        {{ end }}
+                    </select>
+                </label>
+            </form>
+
+            <form action="/dml/delete" method="post">
+                <input type="hidden" name="table" value="{{ .SelectedTable }}">
+
+                <h4>WHERE</h4>
+                <div class="grid">
+                    <label>
+                        Column:
+                        <select name="where_col" required>
+                            {{ range .TableColumns }}
+                            <option value="{{ .Name }}" {{ if eqStr .Name $.DeleteWhereCol }}selected{{ end }}>{{ .Name }}</option>
+                            {{ end }}
+                        </select>
+                    </label>
+                    <label>
+                        Operator:
+                        <select name="where_op" required>
+                            <option value="=" {{ if eqStr $.DeleteWhereOp "=" }}selected{{ end }}>=</option>
+                            <option value="<>" {{ if eqStr $.DeleteWhereOp "<>" }}selected{{ end }}>&lt;&gt;</option>
+                            <option value="<" {{ if eqStr $.DeleteWhereOp "<" }}selected{{ end }}>&lt;</option>
+                            <option value=">" {{ if eqStr $.DeleteWhereOp ">" }}selected{{ end }}>&gt;</option>
+                            <option value="<=" {{ if eqStr $.DeleteWhereOp "<=" }}selected{{ end }}>&lt;=</option>
+                            <option value=">=" {{ if eqStr $.DeleteWhereOp ">=" }}selected{{ end }}>&gt;=</option>
+                            <option value="LIKE" {{ if eqStr $.DeleteWhereOp "LIKE" }}selected{{ end }}>LIKE</option>
+                        </select>
+                    </label>
+                    <label>
+                        Value:
+                        <input type="text" name="where_val" value="{{ .DeleteWhereVal }}" required>
+                    </label>
+                </div>
+
+                <button type="submit">DELETE FROM</button>
+            </form>
+        </article>
+    {{ end }}
+{{ end }}

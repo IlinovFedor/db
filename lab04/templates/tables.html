@@ -1,0 +1,74 @@
+{{ define "content" }}
+<article>
+    <form action="/tables" method="get">
+        <select name="table" onchange="this.form.submit()">
+            <option value="">Select table</option>
+            {{ range .Tables }}
+            <option value="{{ . }}" {{ if eqStr . $.SelectedTable }}selected{{ end }}>{{ . }}</option>
+            {{ end }}
+        </select>
+    </form>
+</article>
+
+<article>
+    {{ if .ShowViewAll }}
+        <h3>ALL</h3>
+        {{ if .AllTables }}
+            {{ range .AllTables }}
+            <hr>
+            <h4>Table <code>{{ .Name }}</code></h4>
+            <figure>
+                <table>
+                    <thead>
+                        <tr>
+                            {{ range .Columns }}
+                            <th>{{ . }}</th>
+                            {{ end }}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Rows }}
+                        <tr>
+                            {{ range . }}
+                            <td>{{ . }}</td>
+                            {{ end }}
+                        </tr>
+                        {{ else }}
+                        <tr><td colspan="{{ len .Columns }}"><em>Empty</em></td></tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </figure>
+            {{ end }}
+        {{ else }}
+            <p>Here are no tables</p>
+        {{ end }}
+    {{ else if .CurrentTable }}
+        <h3>Table: <code>{{ .CurrentTable.Name }}</code></h3>
+        <figure>
+            <table>
+                <thead>
+                    <tr>
+                        {{ range .CurrentTable.Columns }}
+                        <th>{{ . }}</th>
+                        {{ end }}
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .CurrentTable.Rows }}
+                    <tr>
+                        {{ range . }}
+                        <td>{{ . }}</td>
+                        {{ end }}
+                    </tr>
+                    {{ else }}
+                    <tr><td colspan="{{ len .CurrentTable.Columns }}"><em>Empty</em></td></tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </figure>
+    {{ else }}
+        <p>All</p>
+    {{ end }}
+</article>
+{{ end }}

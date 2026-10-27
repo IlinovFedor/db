@@ -1,0 +1,39 @@
+\section{Механизм сброса и начальной инициализации схемы}
+\label{sec:reset}
+
+Поскольку лабораторная работа предполагает активное тестирование деструктивных операций DDL и DML, в приложении предусмотрен механизм изоляции и быстрого восстановления исходного состояния базы данных.
+
+\subsection{Начальная инициализация схемы базы данных}
+
+При старте сервера функция \texttt{main} вызывает процедуру \texttt{initDatabaseTables} (листинг~\ref{lst:init-db}).
+
+\begin{listing}[H]
+    \gofile[firstline=48, lastline=76, firstnumber=48]{../db.go}
+    \caption{Инициализация таблиц и первичное наполнение данными в \texttt{db.go}}
+    \label{lst:init-db}
+\end{listing}
+
+Исходные скрипты встроены в бинарный исполняемый файл с помощью директивы \texttt{//go:embed}. Функция выполняет следующие шаги:
+\begin{enumerate}
+    \item Создает таблицы \texttt{departments} и \texttt{lab2\_employee\_ilinov} с помощью скрипта \texttt{schema.sql} (если они еще не созданы);
+    \item Выполняет проверку количества строк (\texttt{SELECT COUNT(*)}) в каждой из таблиц;
+    \item При отсутствии записей наполняет таблицу отделов 5 строками (\texttt{seed\_departments.sql}), а затем связанную по внешнему ключу \texttt{department\_id} таблицу сотрудников 20 строками (\texttt{seed\_employees.sql}).
+\end{enumerate}
+
+\subsection{Сброс POST /reset}
+
+Кнопка \texttt{Reset} в шапке веб-интерфейса отправляет запрос на эндпоинт \texttt{POST /reset}, активируя обработчик \texttt{ResetHandler} (листинг~\ref{lst:reset-handler}).
+
+\begin{listing}[H]
+    \gofile[firstline=42, lastline=56, firstnumber=42]{../handlers_tables.go}
+    \caption{Обработчик сброса базы данных в \texttt{handlers\_tables.go}}
+    \label{lst:reset-handler}
+\end{listing}
+
+Обработчик вызывает функцию \texttt{resetDatabaseTables} (листинг~\ref{lst:reset-db-tables}).
+
+\begin{listing}[H]
+    \gofile[firstline=78, lastline=87, firstnumber=78]{../db.go}
+    \caption{Каскадное удаление всех таблиц и повторная инициализация}
+    \label{lst:reset-db-tables}
+\end{listing}

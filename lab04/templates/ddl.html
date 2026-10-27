@@ -1,0 +1,230 @@
+{{ define "content" }}
+    <article>
+        <a role="button" href="/ddl/create">CREATE TABLE</a>
+        <a role="button" href="/ddl/alter">ALTER TABLE</a>
+        <a role="button" href="/ddl/truncate">TRUNCATE TABLE</a>
+        <a role="button" href="/ddl/drop">DROP TABLE</a>
+    </article>
+
+    {{ if eqStr .DDLOp "create" }}
+        {{ if eq .DDLStep 1 }}
+        <article>
+            <h3>CREATE TABLE</h3>
+            <form action="/ddl/create" method="get">
+                <input type="hidden" name="step" value="2">
+                <label>
+                    Enter the number of columns:
+                    <input type="number" name="count" min="1" required>
+                </label>
+                <button type="submit">NEXT</button>
+            </form>
+        </article>
+        {{ else }}
+        <article>
+            <h3>CREATE TABLE</h3>
+            <form action="/ddl/create" method="post">
+                <input type="hidden" name="col_count" value="{{ .DDLColCount }}">
+                <label>
+                    Name:
+                    <input type="text" name="table_name" value="{{ .TableName }}" required autofocus>
+                </label>
+
+                <figure>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Nullable</th>
+                                <th>FK</th>
+                                <th>ON DELETE</th>
+                                <th>ON UPDATE</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{ range $i, $col := .CreateColumns }}
+                            <tr>
+                                <td>{{ add $i 1 }}</td>
+                                <td><input type="text" name="col_name_{{ $i }}" value="{{ $col.Name }}" placeholder="column_{{ add $i 1 }}" required></td>
+                                <td>
+                                    <select name="col_type_{{ $i }}">
+                                        <option value="INTEGER" {{ if eqStr $col.DataType "INTEGER" }}selected{{ end }}>INTEGER</option>
+                                        <option value="TEXT" {{ if eqStr $col.DataType "TEXT" }}selected{{ end }}>TEXT</option>
+                                        <option value="BOOLEAN" {{ if eqStr $col.DataType "BOOLEAN" }}selected{{ end }}>BOOLEAN</option>
+                                        <option value="DATE" {{ if eqStr $col.DataType "DATE" }}selected{{ end }}>DATE</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="checkbox" name="col_nullable_{{ $i }}" value="1" {{ if $col.IsNullable }}checked{{ end }}>
+                                </td>
+                                <td>
+                                    <select name="fk_col_{{ $i }}">
+                                        <option value="">Without FK</option>
+                                        <optgroup label="this table">
+                                            {{ range $j, $_ := $.CreateColumns }}
+                                            <option value="__self__:{{ $j }}" {{ if and (eqStr $col.FKTable "__self__") (eq $col.FKSelfIndex $j) }}selected{{ end }}>Column #{{ add $j 1 }}</option>
+                                            {{ end }}
+                                        </optgroup>
+                                        {{ range $tbl, $cols := $.AllTableColumns }}
+                                        <optgroup label="{{ $tbl }}">
+                                            {{ range $c := $cols }}
+                                            <option value="{{ $tbl }}:{{ $c }}" {{ if or (and (eqStr $col.FKTable $tbl) (eqStr $col.FKCol $c)) (eqStr $col.FKCol (printf "%s:%s" $tbl $c)) }}selected{{ end }}>{{ $tbl }}.{{ $c }}</option>
+                                            {{ end }}
+                                        </optgroup>
+                                        {{ end }}
+                                    </select>
+                                </td>
+                                <td>
+                                    <select name="fk_on_delete_{{ $i }}">
+                                        <option value="NO ACTION" {{ if eqStr $col.FKOnDelete "NO ACTION" }}selected{{ end }}>NO ACTION</option>
+                                        <option value="CASCADE" {{ if eqStr $col.FKOnDelete "CASCADE" }}selected{{ end }}>CASCADE</option>
+                                        <option value="SET NULL" {{ if eqStr $col.FKOnDelete "SET NULL" }}selected{{ end }}>SET NULL</option>
+                                        <option value="RESTRICT" {{ if eqStr $col.FKOnDelete "RESTRICT" }}selected{{ end }}>RESTRICT</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <select name="fk_on_update_{{ $i }}">
+                                        <option value="NO ACTION" {{ if eqStr $col.FKOnUpdate "NO ACTION" }}selected{{ end }}>NO ACTION</option>
+                                        <option value="CASCADE" {{ if eqStr $col.FKOnUpdate "CASCADE" }}selected{{ end }}>CASCADE</option>
+                                        <option value="SET NULL" {{ if eqStr $col.FKOnUpdate "SET NULL" }}selected{{ end }}>SET NULL</option>
+                                        <option value="RESTRICT" {{ if eqStr $col.FKOnUpdate "RESTRICT" }}selected{{ end }}>RESTRICT</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            {{ end }}
+                        </tbody>
+                    </table>
+                </figure>
+
+                <label>
+                    PRIMARY KEY:
+                    <select name="pk_index">
+                        <option value="-1">Without PK</option>
+                        {{ range $i, $col := .CreateColumns }}
+                        <option value="{{ $i }}" {{ if $col.IsPrimaryKey }}selected{{ end }}>Column #{{ add $i 1 }}</option>
+                        {{ end }}
+                    </select>
+                </label>
+
+                <button type="submit">CREATE TABLE</button>
+            </form>
+        </article>
+        {{ end }}
+    {{ else if eqStr .DDLOp "alter" }}
+        <article>
+            <h3>ALTER TABLE</h3>
+
+            <form action="/ddl/alter" method="get" class="grid">
+                <label>
+                    Table:
+                    <select name="table" onchange="this.form.submit()">
+                        {{ range .Tables }}
+                        <option value="{{ . }}" {{ if eqStr . $.SelectedTable }}selected{{ end }}>{{ . }}</option>
+                        {{ end }}
+                    </select>
+                </label>
+
+                <label>
+                    Action:
+                    <select name="action" onchange="this.form.submit()">
+                        <option value="alter_type" {{ if eqStr .AlterAction "alter_type" }}selected{{ end }}>ALTER TYPE</option>
+                        <option value="drop" {{ if eqStr .AlterAction "drop" }}selected{{ end }}>DROP COLUMN</option>
+                        <option value="add" {{ if eqStr .AlterAction "add" }}selected{{ end }}>ADD COLUMN</option>
+                    </select>
+                </label>
+            </form>
+
+            <form action="/ddl/alter" method="post">
+                <input type="hidden" name="table" value="{{ .SelectedTable }}">
+                <input type="hidden" name="alter_action" value="{{ .AlterAction }}">
+
+                {{ if eqStr .AlterAction "add" }}
+                    <label>
+                        Name of the new column:
+                        <input type="text" name="new_col_name" value="{{ .AlterNewColName }}" required autofocus>
+                    </label>
+                    <label>
+                        Type:
+                        <select name="col_type">
+                            <option value="INTEGER" {{ if eqStr .AlterColType "INTEGER" }}selected{{ end }}>INTEGER</option>
+                            <option value="TEXT" {{ if or (eqStr .AlterColType "TEXT") (eqStr .AlterColType "") }}selected{{ end }}>TEXT</option>
+                            <option value="BOOLEAN" {{ if eqStr .AlterColType "BOOLEAN" }}selected{{ end }}>BOOLEAN</option>
+                            <option value="DATE" {{ if eqStr .AlterColType "DATE" }}selected{{ end }}>DATE</option>
+                        </select>
+                    </label>
+                    <button type="submit">ADD COLUMN</button>
+
+                {{ else if eqStr .AlterAction "drop" }}
+                    <label>
+                        Column for remove:
+                        <select name="col_name" required>
+                            {{ range .TableColumns }}
+                            <option value="{{ .Name }}" {{ if eqStr .Name $.AlterColName }}selected{{ end }}>{{ .Name }} ({{ .DataType }})</option>
+                            {{ else }}
+                            <option value="">(0 columns)</option>
+                            {{ end }}
+                        </select>
+                    </label>
+                    <button type="submit">DROP COLUMN</button>
+
+                {{ else }}
+                    <label>
+                        Column:
+                        <select name="col_name" required>
+                            {{ range .TableColumns }}
+                            <option value="{{ .Name }}" {{ if eqStr .Name $.AlterColName }}selected{{ end }}>{{ .Name }} ({{ .DataType }})</option>
+                            {{ else }}
+                            <option value="">(0 columns)</option>
+                            {{ end }}
+                        </select>
+                    </label>
+                    <label>
+                        Type:
+                        <select name="col_type">
+                            <option value="INTEGER" {{ if eqStr .AlterColType "INTEGER" }}selected{{ end }}>INTEGER</option>
+                            <option value="TEXT" {{ if or (eqStr .AlterColType "TEXT") (eqStr .AlterColType "") }}selected{{ end }}>TEXT</option>
+                            <option value="BOOLEAN" {{ if eqStr .AlterColType "BOOLEAN" }}selected{{ end }}>BOOLEAN</option>
+                            <option value="DATE" {{ if eqStr .AlterColType "DATE" }}selected{{ end }}>DATE</option>
+                        </select>
+                    </label>
+                    <button type="submit">ALTER TYPE</button>
+                {{ end }}
+            </form>
+        </article>
+    {{ else if eqStr .DDLOp "truncate" }}
+        <article>
+            <h3>TRUNCATE TABLE</h3>
+            <form action="/ddl/truncate" method="post">
+                <label>
+                    Table:
+                    <select name="table" required>
+                        {{ range .Tables }}
+                        <option value="{{ . }}">{{ . }}</option>
+                        {{ end }}
+                    </select>
+                </label>
+                <button type="submit">
+                    TRUNCATE TABLE
+                </button>
+            </form>
+        </article>
+    {{ else if eqStr .DDLOp "drop" }}
+        <article>
+            <h3>DROP TABLE</h3>
+            <form action="/ddl/drop" method="post">
+                <label>
+                    Table:
+                    <select name="table" required>
+                        {{ range .Tables }}
+                        <option value="{{ . }}">{{ . }}</option>
+                        {{ end }}
+                    </select>
+                </label>
+                <button type="submit">
+                    DROP TABLE
+                </button>
+            </form>
+        </article>
+    {{ end }}
+{{ end }}

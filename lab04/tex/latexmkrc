@@ -1,0 +1,3 @@
+$ENV{'TEXINPUTS'} = '/home/localuser/GolandProjects/db/texmf/tex//:' . ($ENV{'TEXINPUTS'} // '');
+$ENV{'OSFONTDIR'} = '/home/localuser/GolandProjects/db/texmf/fonts//:' . ($ENV{'OSFONTDIR'} // '');
+$ENV{'BSTINPUTS'} = '/home/localuser/GolandProjects/db/lab04/tex:' . ($ENV{'BSTINPUTS'} // '');

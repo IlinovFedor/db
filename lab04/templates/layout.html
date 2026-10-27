@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DB Laboratory Work №4 — Ilinov F. M.</title>
+    <link rel="stylesheet" href="/css/pico.min.css">
+    <style>
+        figure, .overflow-auto {
+            overflow-x: auto;
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+<main class="container">
+    <header>
+        <article>
+            <strong>DB Laboratory Work №4</strong><br>
+            <small>RIS-25-2b Ilinov F. M.</small>
+            <form action="/reset" method="post">
+                <button type="submit">Reset</button>
+            </form>
+        </article>
+        <article>
+            <a role="button" href="/tables">SHOW</a>
+            <a role="button" href="/ddl/create">Data Definition Language</a>
+            <a role="button" href="/dml/insert">Data Manipulation Language</a>
+            <a role="button" href="/select">SELECT</a>
+            <a role="button" href="/join">INNER JOIN</a>
+        </article>
+    </header>
+
+    {{ if eqStr .Status "error" }}
+    <article>
+        <header><strong>ERROR:</strong> {{ .Message }}</header>
+        {{ if .SQL }}
+        <pre><code>{{ .SQL }}</code></pre>
+        {{ end }}
+    </article>
+    {{ end }}
+
+    {{ block "content" . }}
+    {{ end }}
+
+</main>
+</body>
+</html>
