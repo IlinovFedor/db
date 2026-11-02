@@ -72,8 +72,6 @@ func (m *SQLManager) Render(name string, data any) (string, error) {
 	return buf.String(), nil
 }
 
-// --- DDL Builders ---
-
 func (m *SQLManager) CreateTable(tableName string, colDefs []string) (string, error) {
 	return m.Render("ddl_create_table.sql", map[string]any{
 		"TableName":         tableName,
@@ -155,8 +153,6 @@ func (m *SQLManager) DropTableIfExists(table string) (string, error) {
 	})
 }
 
-// --- DML Builders ---
-
 func (m *SQLManager) Insert(table string, quotedCols, rowTuples []string) (string, error) {
 	return m.Render("dml_insert.sql", map[string]any{
 		"Table":   table,
@@ -195,8 +191,6 @@ func (m *SQLManager) SimpleWhere(col, op, val string) string {
 	}
 	return " " + strings.TrimSpace(res)
 }
-
-// --- DQL Builders ---
 
 func (m *SQLManager) Select(table, selectList, whereClause, orderClause string) (string, error) {
 	return m.Render("query_select.sql", map[string]any{

@@ -48,7 +48,7 @@
 Пользователь указывает имя таблицы, целевую колонку, новое строковое значение, а также условие фильтрации. Оператор сравнения сначала проверяется функцией \texttt{checkWhereOp} по белому списку, после чего условие WHERE конструируется вспомогательной функцией \texttt{SimpleWhere} (листинг~\ref{lst:build-where}).
 
 \begin{listing}[H]
-    \gofile[firstline=184, lastline=197, firstnumber=184]{../db.go}
+    \gofile[firstline=180, lastline=193, firstnumber=180]{../db.go}
     \caption{Конструирование предиката WHERE в \texttt{db.go}}
     \label{lst:build-where}
 \end{listing}

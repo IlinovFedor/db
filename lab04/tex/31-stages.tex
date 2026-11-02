@@ -15,7 +15,7 @@
 Инициализация сетевого мультиплексора и регистрация маршрутов выполняются в функции \texttt{main} (листинг~\ref{lst:main-router}).
 
 \begin{listing}[H]
-    \gofile[firstline=76, lastline=109, firstnumber=76, gobble=1, autogobble=false]{../main.go}
+    \gofile[firstline=76, lastline=108, firstnumber=76, gobble=1, autogobble=false]{../main.go}
     \caption{Маршрутизация HTTP-запросов DDL, DML и DQL в \texttt{main.go}}
     \label{lst:main-router}
 \end{listing}
@@ -85,7 +85,7 @@
 Поскольку имена таблиц и столбцов передаются из веб-интерфейса динамически, прямое использование позиционных плейсхолдеров PostgreSQL (\texttt{\$1, \$2}) для них неприменимо. Для защиты от внедрения вредоносного SQL-кода (SQL Injection) в файле \texttt{db.go} реализованы специализированные функции экранирования (листинг~\ref{lst:quote-helpers}).
 
 \begin{listing}[H]
-    \gofile[firstline=287, lastline=293, firstnumber=287]{../db.go}
+    \gofile[firstline=281, lastline=287, firstnumber=281]{../db.go}
     \caption{Функции экранирования идентификаторов и литералов}
     \label{lst:quote-helpers}
 \end{listing}
@@ -95,7 +95,7 @@
 Однако часть параметров форм нельзя экранировать ни как идентификатор, ни как литерал: это типы данных столбцов, операторы сравнения в условиях WHERE и правила \texttt{ON DELETE}/\texttt{ON UPDATE} внешних ключей. Они подставляются в текст запроса как есть, поэтому перед сборкой SQL проверяются по белым спискам допустимых значений в файле \texttt{validate.go} (листинг~\ref{lst:whitelists}).
 
 \begin{listing}[H]
-    \gofile[firstline=9, lastline=24, firstnumber=9]{../validate.go}
+    \gofile[firstline=9, lastline=21, firstnumber=9]{../validate.go}
     \caption{Белые списки допустимых значений и функция проверки \texttt{checkAllowed}}
     \label{lst:whitelists}
 \end{listing}

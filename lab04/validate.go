@@ -6,9 +6,6 @@ import (
 	"strings"
 )
 
-// Типы данных, операторы сравнения и правила внешних ключей нельзя
-// экранировать как идентификатор или литерал, поэтому они подставляются
-// в SQL только после проверки по белому списку.
 var (
 	allowedColumnTypes = []string{"INTEGER", "TEXT", "BOOLEAN", "DATE"}
 	allowedCompareOps  = []string{"=", "<>", "<", ">", "<=", ">=", "LIKE", "ILIKE", "IS NULL", "IS NOT NULL"}
@@ -23,8 +20,6 @@ func checkAllowed(kind, value string, allowed []string) error {
 	return fmt.Errorf("invalid %s: %q", kind, value)
 }
 
-// checkWhereOp проверяет оператор простого условия WHERE;
-// пустой оператор означает отсутствие условия.
 func checkWhereOp(op string) error {
 	if op == "" {
 		return nil
