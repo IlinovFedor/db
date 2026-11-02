@@ -6,9 +6,9 @@ import (
 	"github.com/jackc/pgx"
 )
 
-func HandleTables(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
+func HandleTables(views *ViewRenderer, pool *pgx.ConnPool, sql *SQLManager) AppHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
-		base, err := newBasePage(pool)
+		base, err := newBasePage(pool, sql)
 		if err != nil {
 			return &AppError{Err: err, Message: "Database error: " + err.Error(), Code: http.StatusInternalServerError}
 		}
@@ -21,12 +21,12 @@ func HandleTables(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 
 		if tableName == "" {
 			data.ShowViewAll = true
-			if all, err := getAllTablesData(pool); err == nil {
+			if all, err := getAllTablesData(pool, sql); err == nil {
 				data.AllTables = all
 			}
 		} else {
 			data.SelectedTable = tableName
-			td, err := getTableData(pool, tableName)
+			td, err := getTableData(pool, sql, tableName)
 			if err != nil {
 				data.Status = "error"
 				data.Message = "Table not found: " + err.Error()
@@ -39,10 +39,10 @@ func HandleTables(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 	}
 }
 
-func ResetHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
+func ResetHandler(views *ViewRenderer, pool *pgx.ConnPool, sql *SQLManager) AppHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
-		if err := resetDatabaseTables(pool); err != nil {
-			base, bErr := newBasePage(pool)
+		if err := resetDatabaseTables(pool, sql); err != nil {
+			base, bErr := newBasePage(pool, sql)
 			if bErr == nil {
 				base.Status = "error"
 				base.Message = "Database reset failed: " + err.Error()

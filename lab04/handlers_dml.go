@@ -10,8 +10,8 @@ import (
 	"github.com/jackc/pgx"
 )
 
-func renderDMLError(w http.ResponseWriter, views *ViewRenderer, pool *pgx.ConnPool, op string, step int, table, msg, querySQL string, extra func(*DMLPageData)) error {
-	base, err := newBasePage(pool)
+func renderDMLError(w http.ResponseWriter, views *ViewRenderer, pool *pgx.ConnPool, sql *SQLManager, op string, step int, table, msg, querySQL string, extra func(*DMLPageData)) error {
+	base, err := newBasePage(pool, sql)
 	if err != nil {
 		return err
 	}
@@ -22,7 +22,7 @@ func renderDMLError(w http.ResponseWriter, views *ViewRenderer, pool *pgx.ConnPo
 
 	var tableCols []ColumnInfo
 	if table != "" {
-		tableCols, _ = getColumns(pool, table)
+		tableCols, _ = getColumns(pool, sql, table)
 	}
 
 	data := DMLPageData{
@@ -59,9 +59,9 @@ func parseInsertRows(r *http.Request, cols []string, rowCount int) ([]map[string
 	return insertRows, rowTuples
 }
 
-func HandleDML(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
+func HandleDML(views *ViewRenderer, pool *pgx.ConnPool, sql *SQLManager) AppHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
-		base, err := newBasePage(pool)
+		base, err := newBasePage(pool, sql)
 		if err != nil {
 			return &AppError{Err: err, Message: "Database error: " + err.Error(), Code: http.StatusInternalServerError}
 		}
@@ -86,7 +86,7 @@ func HandleDML(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 
 		var tableCols []ColumnInfo
 		if table != "" {
-			tableCols, _ = getColumns(pool, table)
+			tableCols, _ = getColumns(pool, sql, table)
 		}
 
 		rowCount, _ := strconv.Atoi(r.URL.Query().Get("rows"))
@@ -105,7 +105,7 @@ func HandleDML(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 	}
 }
 
-func InsertHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
+func InsertHandler(views *ViewRenderer, pool *pgx.ConnPool, sql *SQLManager) AppHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		if err := r.ParseForm(); err != nil {
 			return &AppError{Err: err, Message: "Invalid form data", Code: http.StatusBadRequest}
@@ -118,12 +118,12 @@ func InsertHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 		}
 
 		if table == "" {
-			return renderDMLError(w, views, pool, "insert", 2, "", "Select a table", "", nil)
+			return renderDMLError(w, views, pool, sql, "insert", 2, "", "Select a table", "", nil)
 		}
 
-		cols, err := getColumns(pool, table)
+		cols, err := getColumns(pool, sql, table)
 		if err != nil {
-			return renderDMLError(w, views, pool, "insert", 2, table, "Failed to get columns: "+err.Error(), "", nil)
+			return renderDMLError(w, views, pool, sql, "insert", 2, table, "Failed to get columns: "+err.Error(), "", nil)
 		}
 
 		var targetCols []string
@@ -139,16 +139,16 @@ func InsertHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 		insertRows, rowTuples := parseInsertRows(r, targetCols, rowCount)
 
 		renderErr := func(msg, sqlQuery string) error {
-			return renderDMLError(w, views, pool, "insert", 2, table, msg, sqlQuery, func(d *DMLPageData) {
+			return renderDMLError(w, views, pool, sql, "insert", 2, table, msg, sqlQuery, func(d *DMLPageData) {
 				d.DMLRowCount = rowCount
 				d.InsertRows = insertRows
 			})
 		}
 
-		querySQL := fmt.Sprintf("INSERT INTO %s (%s) VALUES\n%s;",
-			quoteIdent(table),
-			strings.Join(quotedCols, ", "),
-			strings.Join(rowTuples, ",\n"))
+		querySQL, err := sql.Insert(table, quotedCols, rowTuples)
+		if err != nil {
+			return renderErr(fmt.Sprintf("Failed to render INSERT INTO query: %v", err), "")
+		}
 
 		if _, err := pool.Exec(querySQL); err != nil {
 			return renderErr(fmt.Sprintf("Failed to execute INSERT INTO: %v", err), querySQL)
@@ -159,7 +159,7 @@ func InsertHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 	}
 }
 
-func UpdateHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
+func UpdateHandler(views *ViewRenderer, pool *pgx.ConnPool, sql *SQLManager) AppHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		if err := r.ParseForm(); err != nil {
 			return &AppError{Err: err, Message: "Invalid form data", Code: http.StatusBadRequest}
@@ -173,7 +173,7 @@ func UpdateHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 		whereVal := strings.TrimSpace(r.FormValue("where_val"))
 
 		renderErr := func(msg, sqlQuery string) error {
-			return renderDMLError(w, views, pool, "update", 1, table, msg, sqlQuery, func(d *DMLPageData) {
+			return renderDMLError(w, views, pool, sql, "update", 1, table, msg, sqlQuery, func(d *DMLPageData) {
 				d.UpdateSetCol = setCol
 				d.UpdateSetVal = setVal
 				d.UpdateWhereCol = whereCol
@@ -185,12 +185,15 @@ func UpdateHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 		if table == "" || setCol == "" {
 			return renderErr("Specify table and column to update", "")
 		}
+		if err := checkWhereOp(whereOp); err != nil {
+			return renderErr(err.Error(), "")
+		}
 
-		querySQL := fmt.Sprintf("UPDATE %s SET %s = %s%s;",
-			quoteIdent(table),
-			quoteIdent(setCol),
-			quoteLiteral(setVal),
-			buildSimpleWhere(whereCol, whereOp, whereVal))
+		whereClause := sql.SimpleWhere(whereCol, whereOp, whereVal)
+		querySQL, err := sql.Update(table, setCol, setVal, whereClause)
+		if err != nil {
+			return renderErr(fmt.Sprintf("Failed to render UPDATE query: %v", err), "")
+		}
 
 		if _, err := pool.Exec(querySQL); err != nil {
 			return renderErr(fmt.Sprintf("Failed to execute UPDATE: %v", err), querySQL)
@@ -201,7 +204,7 @@ func UpdateHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 	}
 }
 
-func DeleteHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
+func DeleteHandler(views *ViewRenderer, pool *pgx.ConnPool, sql *SQLManager) AppHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		if err := r.ParseForm(); err != nil {
 			return &AppError{Err: err, Message: "Invalid form data", Code: http.StatusBadRequest}
@@ -213,7 +216,7 @@ func DeleteHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 		whereVal := strings.TrimSpace(r.FormValue("where_val"))
 
 		renderErr := func(msg, sqlQuery string) error {
-			return renderDMLError(w, views, pool, "delete", 1, table, msg, sqlQuery, func(d *DMLPageData) {
+			return renderDMLError(w, views, pool, sql, "delete", 1, table, msg, sqlQuery, func(d *DMLPageData) {
 				d.DeleteWhereCol = whereCol
 				d.DeleteWhereOp = whereOp
 				d.DeleteWhereVal = whereVal
@@ -223,8 +226,15 @@ func DeleteHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 		if table == "" {
 			return renderErr("Select a table", "")
 		}
+		if err := checkWhereOp(whereOp); err != nil {
+			return renderErr(err.Error(), "")
+		}
 
-		querySQL := fmt.Sprintf("DELETE FROM %s%s;", quoteIdent(table), buildSimpleWhere(whereCol, whereOp, whereVal))
+		whereClause := sql.SimpleWhere(whereCol, whereOp, whereVal)
+		querySQL, err := sql.Delete(table, whereClause)
+		if err != nil {
+			return renderErr(fmt.Sprintf("Failed to render DELETE query: %v", err), "")
+		}
 
 		if _, err := pool.Exec(querySQL); err != nil {
 			return renderErr(fmt.Sprintf("Failed to execute DELETE: %v", err), querySQL)

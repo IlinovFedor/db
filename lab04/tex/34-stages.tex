@@ -14,7 +14,7 @@
 Фрагмент генерации сетки ввода приведен в листинге~\ref{lst:dml-insert-form}.
 
 \begin{listing}[H]
-    \htmlfile[firstline=36, lastline=62, firstnumber=36]{../templates/dml.html}
+    \htmlfile[firstline=36, lastline=62, firstnumber=36, gobble=16, autogobble=false]{../templates/dml.html}
     \caption{Генерация динамической сетки ввода кортежей в \texttt{templates/dml.html}}
     \label{lst:dml-insert-form}
 \end{listing}
@@ -40,15 +40,15 @@
 Изменение данных реализуется обработчиком \texttt{UpdateHandler} (листинг~\ref{lst:update-handler}).
 
 \begin{listing}[H]
-    \gofile[firstline=189, lastline=202, firstnumber=189]{../handlers_dml.go}
+    \gofile[firstline=185, lastline=203, firstnumber=185, gobble=2, autogobble=false]{../handlers_dml.go}
     \caption{Конструирование и выполнение команды \texttt{UPDATE}}
     \label{lst:update-handler}
 \end{listing}
 
-Пользователь указывает имя таблицы, целевую колонку, новое строковое значение, а также условие фильтрации. Условия WHERE конструируется вспомогательной функцией \texttt{buildSimpleWhere} (листинг~\ref{lst:build-where}).
+Пользователь указывает имя таблицы, целевую колонку, новое строковое значение, а также условие фильтрации. Оператор сравнения сначала проверяется функцией \texttt{checkWhereOp} по белому списку, после чего условие WHERE конструируется вспомогательной функцией \texttt{SimpleWhere} (листинг~\ref{lst:build-where}).
 
 \begin{listing}[H]
-    \gofile[firstline=156, lastline=164, firstnumber=156]{../db.go}
+    \gofile[firstline=184, lastline=197, firstnumber=184]{../db.go}
     \caption{Конструирование предиката WHERE в \texttt{db.go}}
     \label{lst:build-where}
 \end{listing}
@@ -58,7 +58,7 @@
 Удаление строк выполняется обработчиком \texttt{DeleteHandler} (листинг~\ref{lst:delete-handler}).
 
 \begin{listing}[H]
-    \gofile[firstline=227, lastline=236, firstnumber=227]{../handlers_dml.go}
+    \gofile[firstline=226, lastline=244, firstnumber=226, gobble=2, autogobble=false]{../handlers_dml.go}
     \caption{Конструирование и выполнение команды \texttt{DELETE FROM}}
     \label{lst:delete-handler}
 \end{listing}

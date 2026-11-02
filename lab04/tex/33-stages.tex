@@ -14,7 +14,7 @@
 Фрагмент формы второго шага приведен в листинге~\ref{lst:ddl-create-form}.
 
 \begin{listing}[H]
-    \htmlfile[firstline=23, lastline=44, firstnumber=23]{../templates/ddl.html}
+    \htmlfile[firstline=45, lastline=60, firstnumber=45, gobble=24, autogobble=false]{../templates/ddl.html}
     \caption{Динамическая форма настройки колонок таблицы в \texttt{templates/ddl.html}}
     \label{lst:ddl-create-form}
 \end{listing}
@@ -23,16 +23,22 @@
 
 \begin{listing}[H]
     \gofile[firstline=34, lastline=52, firstnumber=34]{../handlers_ddl.go}
-    \caption{Парсинг полей и первичного ключа в \texttt{handlers\_ddl.go}}
+    \caption{Парсинг полей столбцов и первичного ключа в \texttt{handlers\_ddl.go}}
     \label{lst:parse-create-cols}
 \end{listing}
 
-Особое внимание уделено поддержке самоссылающихся внешних ключей (префикс \texttt{\_\_self\_\_}), когда столбец ссылается на первичный ключ этой же создаваемой таблицы.
-
-После формирования списка столбцов обработчик \texttt{CreateTableHandler} формирует итоговый SQL-запрос и передает его СУБД (листинг~\ref{lst:create-table-exec}).
+Особое внимание уделено поддержке самоссылающихся внешних ключей (префикс \texttt{\_\_self\_\_}), когда столбец ссылается на первичный ключ этой же создаваемой таблицы. Разбор ссылки внешнего ключа приведен в листинге~\ref{lst:parse-fk}.
 
 \begin{listing}[H]
-    \gofile[firstline=228, lastline=243, firstnumber=228]{../handlers_ddl.go}
+    \gofile[firstline=53, lastline=72, firstnumber=53, gobble=2, autogobble=false]{../handlers_ddl.go}
+    \caption{Разбор ссылок внешних ключей в \texttt{handlers\_ddl.go}}
+    \label{lst:parse-fk}
+\end{listing}
+
+После формирования списка столбцов обработчик \texttt{CreateTableHandler} проверяет типы данных и правила внешних ключей функцией \texttt{checkCreateColumns}, затем формирует итоговый SQL-запрос и передает его СУБД (листинг~\ref{lst:create-table-exec}).
+
+\begin{listing}[H]
+    \gofile[firstline=219, lastline=238, firstnumber=219, gobble=2, autogobble=false]{../handlers_ddl.go}
     \caption{Сборка и выполнение запроса \texttt{CREATE TABLE}}
     \label{lst:create-table-exec}
 \end{listing}
@@ -44,12 +50,12 @@
 Операция изменения структуры таблицы реализуется обработчиком \texttt{AlterTableHandler} (листинг~\ref{lst:alter-table-exec}).
 
 \begin{listing}[H]
-    \gofile[firstline=277, lastline=302, firstnumber=277]{../handlers_ddl.go}
+    \gofile[firstline=270, lastline=305, firstnumber=270, gobble=2, autogobble=false]{../handlers_ddl.go}
     \caption{Сборка и исполнение команд \texttt{ALTER TABLE}}
     \label{lst:alter-table-exec}
 \end{listing}
 
-Поддерживаются три сценария:
+Для действий добавления и изменения типа столбца тип данных предварительно проверяется по белому списку (строки 274--281). Поддерживаются три сценария:
 \begin{enumerate}
     \item добавление нового столбца;
     \item изменение типа существующего столбца;
@@ -61,7 +67,7 @@
 Для быстрого удаления всех записей таблицы без разрушения ее схемы используется обработчик \texttt{TruncateTableHandler} (листинг~\ref{lst:truncate-exec}).
 
 \begin{listing}[H]
-    \gofile[firstline=304, lastline=323, firstnumber=304]{../handlers_ddl.go}
+    \gofile[firstline=309, lastline=331, firstnumber=309]{../handlers_ddl.go}
     \caption{Сборка и исполнение команды \texttt{TRUNCATE TABLE}}
     \label{lst:truncate-exec}
 \end{listing}
@@ -69,7 +75,7 @@
 Удаление сущности целиком выполняется обработчиком \texttt{DropTableHandler} (листинг~\ref{lst:drop-exec}).
 
 \begin{listing}[H]
-    \gofile[firstline=325, lastline=344, firstnumber=325]{../handlers_ddl.go}
+    \gofile[firstline=333, lastline=355, firstnumber=333]{../handlers_ddl.go}
     \caption{Сборка и исполнение команды \texttt{DROP TABLE}}
     \label{lst:drop-exec}
 \end{listing}

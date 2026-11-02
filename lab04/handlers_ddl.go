@@ -10,8 +10,8 @@ import (
 	"github.com/jackc/pgx"
 )
 
-func renderDDLError(w http.ResponseWriter, views *ViewRenderer, pool *pgx.ConnPool, op string, step int, selectedTable, msg, querySQL string, extra func(*DDLPageData)) error {
-	base, err := newBasePage(pool)
+func renderDDLError(w http.ResponseWriter, views *ViewRenderer, pool *pgx.ConnPool, sql *SQLManager, op string, step int, selectedTable, msg, querySQL string, extra func(*DDLPageData)) error {
+	base, err := newBasePage(pool, sql)
 	if err != nil {
 		return err
 	}
@@ -31,7 +31,7 @@ func renderDDLError(w http.ResponseWriter, views *ViewRenderer, pool *pgx.ConnPo
 	return views.RenderStatus(w, "ddl", http.StatusBadRequest, data)
 }
 
-func parseCreateColumns(r *http.Request, colCount int, tableName string) ([]ColumnDef, []string) {
+func parseCreateColumns(r *http.Request, sql *SQLManager, colCount int, tableName string) ([]ColumnDef, []string) {
 	pkIndex, pkErr := strconv.Atoi(r.FormValue("pk_index"))
 	hasPK := pkErr == nil && pkIndex >= 0 && pkIndex < colCount
 
@@ -88,10 +88,7 @@ func parseCreateColumns(r *http.Request, colCount int, tableName string) ([]Colu
 			continue
 		}
 
-		colDef := fmt.Sprintf("%s %s", quoteIdent(cName), cType)
-		if !isNullable {
-			colDef += " NOT NULL"
-		}
+		colDef := sql.ColumnDef(cName, cType, isNullable)
 		colDefs = append(colDefs, colDef)
 
 		if isPK {
@@ -100,7 +97,8 @@ func parseCreateColumns(r *http.Request, colCount int, tableName string) ([]Colu
 	}
 
 	if pkColName != "" {
-		colDefs = append(colDefs, fmt.Sprintf("PRIMARY KEY (%s)", quoteIdent(pkColName)))
+		pkDef := sql.PrimaryKey(pkColName)
+		colDefs = append(colDefs, pkDef)
 	}
 
 	for _, c := range parsedCols {
@@ -117,14 +115,7 @@ func parseCreateColumns(r *http.Request, colCount int, tableName string) ([]Colu
 		}
 
 		if targetTable != "" && targetCol != "" {
-			fkRule := fmt.Sprintf("FOREIGN KEY (%s) REFERENCES %s (%s)",
-				quoteIdent(c.Name), quoteIdent(targetTable), quoteIdent(targetCol))
-			if c.FKOnDelete != "" && c.FKOnDelete != "NO ACTION" {
-				fkRule += " ON DELETE " + c.FKOnDelete
-			}
-			if c.FKOnUpdate != "" && c.FKOnUpdate != "NO ACTION" {
-				fkRule += " ON UPDATE " + c.FKOnUpdate
-			}
+			fkRule := sql.ForeignKey(c.Name, targetTable, targetCol, c.FKOnDelete, c.FKOnUpdate)
 			colDefs = append(colDefs, fkRule)
 		}
 	}
@@ -132,9 +123,9 @@ func parseCreateColumns(r *http.Request, colCount int, tableName string) ([]Colu
 	return parsedCols, colDefs
 }
 
-func HandleDDL(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
+func HandleDDL(views *ViewRenderer, pool *pgx.ConnPool, sql *SQLManager) AppHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
-		base, err := newBasePage(pool)
+		base, err := newBasePage(pool, sql)
 		if err != nil {
 			return &AppError{Err: err, Message: "Database error: " + err.Error(), Code: http.StatusInternalServerError}
 		}
@@ -164,7 +155,7 @@ func HandleDDL(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 
 		var tableCols []ColumnInfo
 		if targetTable != "" {
-			tableCols, _ = getColumns(pool, targetTable)
+			tableCols, _ = getColumns(pool, sql, targetTable)
 		}
 
 		alterAction := r.URL.Query().Get("action")
@@ -185,7 +176,7 @@ func HandleDDL(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 					FKSelfIndex:  -1,
 				}
 			}
-			allTableCols = getAllTableColumns(pool, base.Tables)
+			allTableCols = getAllTableColumns(pool, sql, base.Tables)
 		}
 
 		base.SelectedTable = targetTable
@@ -202,7 +193,7 @@ func HandleDDL(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 	}
 }
 
-func CreateTableHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
+func CreateTableHandler(views *ViewRenderer, pool *pgx.ConnPool, sql *SQLManager) AppHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		if err := r.ParseForm(); err != nil {
 			return &AppError{Err: err, Message: "Invalid form data", Code: http.StatusBadRequest}
@@ -214,14 +205,14 @@ func CreateTableHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 			colCount = 1
 		}
 
-		parsedCols, colDefs := parseCreateColumns(r, colCount, tableName)
+		parsedCols, colDefs := parseCreateColumns(r, sql, colCount, tableName)
 
 		renderErr := func(msg, sqlQuery string) error {
-			return renderDDLError(w, views, pool, "create", 2, "", msg, sqlQuery, func(d *DDLPageData) {
+			return renderDDLError(w, views, pool, sql, "create", 2, "", msg, sqlQuery, func(d *DDLPageData) {
 				d.DDLColCount = colCount
 				d.TableName = tableName
 				d.CreateColumns = parsedCols
-				d.AllTableColumns = getAllTableColumns(pool, d.Tables)
+				d.AllTableColumns = getAllTableColumns(pool, sql, d.Tables)
 			})
 		}
 
@@ -231,8 +222,14 @@ func CreateTableHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 		if len(colDefs) == 0 {
 			return renderErr("At least one column must be specified", "")
 		}
+		if err := checkCreateColumns(parsedCols); err != nil {
+			return renderErr(err.Error(), "")
+		}
 
-		querySQL := fmt.Sprintf("CREATE TABLE %s (\n    %s\n);", quoteIdent(tableName), strings.Join(colDefs, ",\n    "))
+		querySQL, err := sql.CreateTable(tableName, colDefs)
+		if err != nil {
+			return renderErr(fmt.Sprintf("Failed to render create table query: %v", err), "")
+		}
 		if _, err := pool.Exec(querySQL); err != nil {
 			return renderErr(fmt.Sprintf("Failed to create table (CREATE TABLE): %v", err), querySQL)
 		}
@@ -242,7 +239,7 @@ func CreateTableHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 	}
 }
 
-func AlterTableHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
+func AlterTableHandler(views *ViewRenderer, pool *pgx.ConnPool, sql *SQLManager) AppHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		if err := r.ParseForm(); err != nil {
 			return &AppError{Err: err, Message: "Invalid form data", Code: http.StatusBadRequest}
@@ -259,13 +256,13 @@ func AlterTableHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 		colType := strings.TrimSpace(r.FormValue("col_type"))
 
 		renderErr := func(msg, sqlQuery string) error {
-			return renderDDLError(w, views, pool, "alter", 1, table, msg, sqlQuery, func(d *DDLPageData) {
+			return renderDDLError(w, views, pool, sql, "alter", 1, table, msg, sqlQuery, func(d *DDLPageData) {
 				d.AlterAction = action
 				d.AlterColName = colName
 				d.AlterNewColName = newCol
 				d.AlterColType = colType
 				if table != "" {
-					d.TableColumns, _ = getColumns(pool, table)
+					d.TableColumns, _ = getColumns(pool, sql, table)
 				}
 			})
 		}
@@ -274,22 +271,30 @@ func AlterTableHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 			return renderErr("Specify table and column name", "")
 		}
 
+		if action == "add" || action == "alter_type" {
+			if colType == "" {
+				colType = "TEXT"
+			}
+			if err := checkAllowed("column type", colType, allowedColumnTypes); err != nil {
+				return renderErr(err.Error(), "")
+			}
+		}
+
 		var querySQL string
+		var err error
 		switch action {
 		case "add":
-			if colType == "" {
-				colType = "TEXT"
-			}
-			querySQL = fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s;", quoteIdent(table), quoteIdent(effectiveColName), colType)
+			querySQL, err = sql.AlterAdd(table, effectiveColName, colType)
 		case "alter_type":
-			if colType == "" {
-				colType = "TEXT"
-			}
-			querySQL = fmt.Sprintf("ALTER TABLE %s ALTER COLUMN %s TYPE %s USING %s::%s;", quoteIdent(table), quoteIdent(effectiveColName), colType, quoteIdent(effectiveColName), colType)
+			querySQL, err = sql.AlterType(table, effectiveColName, colType)
 		case "drop":
-			querySQL = fmt.Sprintf("ALTER TABLE %s DROP COLUMN %s CASCADE;", quoteIdent(table), quoteIdent(effectiveColName))
+			querySQL, err = sql.AlterDrop(table, effectiveColName)
 		default:
 			return renderErr("Unknown ALTER action", "")
+		}
+
+		if err != nil {
+			return renderErr(fmt.Sprintf("Failed to render ALTER TABLE query: %v", err), "")
 		}
 
 		if _, err := pool.Exec(querySQL); err != nil {
@@ -301,7 +306,7 @@ func AlterTableHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 	}
 }
 
-func TruncateTableHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
+func TruncateTableHandler(views *ViewRenderer, pool *pgx.ConnPool, sql *SQLManager) AppHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		if err := r.ParseForm(); err != nil {
 			return &AppError{Err: err, Message: "Invalid form data", Code: http.StatusBadRequest}
@@ -309,12 +314,15 @@ func TruncateTableHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 
 		table := strings.TrimSpace(r.FormValue("table"))
 		if table == "" {
-			return renderDDLError(w, views, pool, "truncate", 1, "", "Select a table to truncate", "", nil)
+			return renderDDLError(w, views, pool, sql, "truncate", 1, "", "Select a table to truncate", "", nil)
 		}
 
-		querySQL := fmt.Sprintf("TRUNCATE TABLE %s CASCADE;", quoteIdent(table))
+		querySQL, err := sql.TruncateTable(table)
+		if err != nil {
+			return renderDDLError(w, views, pool, sql, "truncate", 1, table, fmt.Sprintf("Failed to render TRUNCATE query: %v", err), "", nil)
+		}
 		if _, err := pool.Exec(querySQL); err != nil {
-			return renderDDLError(w, views, pool, "truncate", 1, table, fmt.Sprintf("Failed to execute TRUNCATE: %v", err), querySQL, nil)
+			return renderDDLError(w, views, pool, sql, "truncate", 1, table, fmt.Sprintf("Failed to execute TRUNCATE: %v", err), querySQL, nil)
 		}
 
 		redirectSuccess(w, r, fmt.Sprintf("/tables/%s", url.PathEscape(table)))
@@ -322,7 +330,7 @@ func TruncateTableHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 	}
 }
 
-func DropTableHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
+func DropTableHandler(views *ViewRenderer, pool *pgx.ConnPool, sql *SQLManager) AppHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		if err := r.ParseForm(); err != nil {
 			return &AppError{Err: err, Message: "Invalid form data", Code: http.StatusBadRequest}
@@ -330,12 +338,15 @@ func DropTableHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 
 		table := strings.TrimSpace(r.FormValue("table"))
 		if table == "" {
-			return renderDDLError(w, views, pool, "drop", 1, "", "Select a table to drop", "", nil)
+			return renderDDLError(w, views, pool, sql, "drop", 1, "", "Select a table to drop", "", nil)
 		}
 
-		querySQL := fmt.Sprintf("DROP TABLE %s CASCADE;", quoteIdent(table))
+		querySQL, err := sql.DropTable(table)
+		if err != nil {
+			return renderDDLError(w, views, pool, sql, "drop", 1, table, fmt.Sprintf("Failed to render DROP TABLE query: %v", err), "", nil)
+		}
 		if _, err := pool.Exec(querySQL); err != nil {
-			return renderDDLError(w, views, pool, "drop", 1, table, fmt.Sprintf("Failed to execute DROP TABLE: %v", err), querySQL, nil)
+			return renderDDLError(w, views, pool, sql, "drop", 1, table, fmt.Sprintf("Failed to execute DROP TABLE: %v", err), querySQL, nil)
 		}
 
 		redirectSuccess(w, r, "/tables")

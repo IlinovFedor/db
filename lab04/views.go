@@ -176,8 +176,8 @@ func redirectSuccess(w http.ResponseWriter, r *http.Request, path string) {
 	http.Redirect(w, r, path, http.StatusSeeOther)
 }
 
-func newBasePage(pool *pgx.ConnPool) (BasePage, error) {
-	tables, err := getTables(pool)
+func newBasePage(pool *pgx.ConnPool, sql *SQLManager) (BasePage, error) {
+	tables, err := getTables(pool, sql)
 	if err != nil {
 		return BasePage{}, err
 	}
@@ -186,10 +186,10 @@ func newBasePage(pool *pgx.ConnPool) (BasePage, error) {
 	}, nil
 }
 
-func getAllTableColumns(pool *pgx.ConnPool, tables []string) map[string][]string {
+func getAllTableColumns(pool *pgx.ConnPool, sql *SQLManager, tables []string) map[string][]string {
 	res := make(map[string][]string, len(tables))
 	for _, t := range tables {
-		cols, err := getColumns(pool, t)
+		cols, err := getColumns(pool, sql, t)
 		if err == nil {
 			names := make([]string, len(cols))
 			for i, c := range cols {

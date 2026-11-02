@@ -1,0 +1,1 @@
+TRUNCATE TABLE {{quote .Table}} CASCADE;

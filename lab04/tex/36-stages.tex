@@ -8,7 +8,7 @@
 При старте сервера функция \texttt{main} вызывает процедуру \texttt{initDatabaseTables} (листинг~\ref{lst:init-db}).
 
 \begin{listing}[H]
-    \gofile[firstline=48, lastline=76, firstnumber=48]{../db.go}
+    \gofile[firstline=295, lastline=323, firstnumber=295]{../db.go}
     \caption{Инициализация таблиц и первичное наполнение данными в \texttt{db.go}}
     \label{lst:init-db}
 \end{listing}
@@ -33,7 +33,7 @@
 Обработчик вызывает функцию \texttt{resetDatabaseTables} (листинг~\ref{lst:reset-db-tables}).
 
 \begin{listing}[H]
-    \gofile[firstline=78, lastline=87, firstnumber=78]{../db.go}
+    \gofile[firstline=325, lastline=338, firstnumber=325]{../db.go}
     \caption{Каскадное удаление всех таблиц и повторная инициализация}
     \label{lst:reset-db-tables}
 \end{listing}

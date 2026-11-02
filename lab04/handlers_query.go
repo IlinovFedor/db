@@ -9,9 +9,9 @@ import (
 	"github.com/jackc/pgx"
 )
 
-func HandleSelect(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
+func HandleSelect(views *ViewRenderer, pool *pgx.ConnPool, sql *SQLManager) AppHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
-		base, err := newBasePage(pool)
+		base, err := newBasePage(pool, sql)
 		if err != nil {
 			return &AppError{Err: err, Message: "Database error: " + err.Error(), Code: http.StatusInternalServerError}
 		}
@@ -26,7 +26,7 @@ func HandleSelect(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 
 		var cols []ColumnInfo
 		if targetTable != "" {
-			cols, _ = getColumns(pool, targetTable)
+			cols, _ = getColumns(pool, sql, targetTable)
 		}
 
 		base.SelectedTable = targetTable
@@ -38,16 +38,16 @@ func HandleSelect(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 	}
 }
 
-func SelectHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
+func SelectHandler(views *ViewRenderer, pool *pgx.ConnPool, sql *SQLManager) AppHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		if err := r.ParseForm(); err != nil {
 			return &AppError{Err: err, Message: "Invalid form data", Code: http.StatusBadRequest}
 		}
 
 		table := strings.TrimSpace(r.FormValue("table"))
-		cols, _ := getColumns(pool, table)
+		cols, _ := getColumns(pool, sql, table)
 
-		base, err := newBasePage(pool)
+		base, err := newBasePage(pool, sql)
 		if err != nil {
 			return &AppError{Err: err, Message: "Database error: " + err.Error(), Code: http.StatusInternalServerError}
 		}
@@ -75,10 +75,16 @@ func SelectHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 			if r.FormValue("where_en_"+col.Name) == "1" {
 				op := strings.TrimSpace(r.FormValue("where_op_" + col.Name))
 				rawVal := strings.TrimSpace(r.FormValue("where_val_" + col.Name))
+				if err := checkAllowed("WHERE operator", op, allowedSelectOps); err != nil {
+					data.Status = "error"
+					data.Message = err.Error()
+					return views.Render(w, "select", data)
+				}
 
 				switch op {
 				case "IS NULL", "IS NOT NULL":
-					whereParts = append(whereParts, fmt.Sprintf("%s %s", quoteIdent(col.Name), op))
+					part := sql.WhereNull(col.Name, op)
+					whereParts = append(whereParts, part)
 				case "IN", "NOT IN":
 					items := strings.Split(rawVal, ",")
 					var quotedItems []string
@@ -88,19 +94,23 @@ func SelectHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 						}
 					}
 					if len(quotedItems) > 0 {
-						whereParts = append(whereParts, fmt.Sprintf("%s %s (%s)", quoteIdent(col.Name), op, strings.Join(quotedItems, ", ")))
+						part := sql.WhereIn(col.Name, op, quotedItems)
+						whereParts = append(whereParts, part)
 					}
 				case "LIKE", "ILIKE":
-					whereParts = append(whereParts, fmt.Sprintf("%s %s %s", quoteIdent(col.Name), op, quoteLiteral("%"+rawVal+"%")))
+					part := sql.WhereOp(col.Name, op, "%"+rawVal+"%")
+					whereParts = append(whereParts, part)
 				default:
-					whereParts = append(whereParts, fmt.Sprintf("%s %s %s", quoteIdent(col.Name), op, quoteLiteral(rawVal)))
+					part := sql.WhereOp(col.Name, op, rawVal)
+					whereParts = append(whereParts, part)
 				}
 			}
 		}
 
 		whereClause := ""
 		if len(whereParts) > 0 {
-			whereClause = " WHERE " + strings.Join(whereParts, " AND ")
+			clause := sql.WhereClause(strings.Join(whereParts, " AND "))
+			whereClause = " " + clause
 		}
 
 		orderByCol := strings.TrimSpace(r.FormValue("order_by"))
@@ -110,10 +120,16 @@ func SelectHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 		}
 		orderClause := ""
 		if orderByCol != "" && orderByCol != "none" {
-			orderClause = fmt.Sprintf(" ORDER BY %s %s", quoteIdent(orderByCol), orderDir)
+			clause := sql.OrderBy(orderByCol, orderDir)
+			orderClause = " " + clause
 		}
 
-		querySQL := fmt.Sprintf("SELECT %s FROM %s%s%s;", selectList, quoteIdent(table), whereClause, orderClause)
+		querySQL, err := sql.Select(table, selectList, whereClause, orderClause)
+		if err != nil {
+			data.Status = "error"
+			data.Message = "Failed to render query: " + err.Error()
+			return views.Render(w, "select", data)
+		}
 
 		rows, err := pool.Query(querySQL)
 		if err != nil {
@@ -137,9 +153,9 @@ func SelectHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 	}
 }
 
-func HandleJoin(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
+func HandleJoin(views *ViewRenderer, pool *pgx.ConnPool, sql *SQLManager) AppHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
-		base, err := newBasePage(pool)
+		base, err := newBasePage(pool, sql)
 		if err != nil {
 			return &AppError{Err: err, Message: "Database error: " + err.Error(), Code: http.StatusInternalServerError}
 		}
@@ -166,10 +182,10 @@ func HandleJoin(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 
 		var cols1, cols2 []ColumnInfo
 		if t1 != "" {
-			cols1, _ = getColumns(pool, t1)
+			cols1, _ = getColumns(pool, sql, t1)
 		}
 		if t2 != "" {
-			cols2, _ = getColumns(pool, t2)
+			cols2, _ = getColumns(pool, sql, t2)
 		}
 
 		return views.Render(w, "join", JoinPageData{
@@ -183,7 +199,7 @@ func HandleJoin(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 	}
 }
 
-func JoinHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
+func JoinHandler(views *ViewRenderer, pool *pgx.ConnPool, sql *SQLManager) AppHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		if err := r.ParseForm(); err != nil {
 			return &AppError{Err: err, Message: "Invalid form data", Code: http.StatusBadRequest}
@@ -194,10 +210,10 @@ func JoinHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 		col1 := strings.TrimSpace(r.FormValue("join_col1"))
 		col2 := strings.TrimSpace(r.FormValue("join_col2"))
 
-		cols1, _ := getColumns(pool, t1)
-		cols2, _ := getColumns(pool, t2)
+		cols1, _ := getColumns(pool, sql, t1)
+		cols2, _ := getColumns(pool, sql, t2)
 
-		base, err := newBasePage(pool)
+		base, err := newBasePage(pool, sql)
 		if err != nil {
 			return &AppError{Err: err, Message: "Database error: " + err.Error(), Code: http.StatusInternalServerError}
 		}
@@ -220,24 +236,26 @@ func JoinHandler(views *ViewRenderer, pool *pgx.ConnPool) AppHandler {
 		var selectItems []string
 		for _, c := range cols1 {
 			if r.FormValue("sel1_"+c.Name) == "1" {
-				selectItems = append(selectItems, fmt.Sprintf("t1.%s AS %s", quoteIdent(c.Name), quoteIdent(t1+"."+c.Name)))
+				item := sql.SelectAs("t1", c.Name, t1+"."+c.Name)
+				selectItems = append(selectItems, item)
 			}
 		}
 		for _, c := range cols2 {
 			if r.FormValue("sel2_"+c.Name) == "1" {
-				selectItems = append(selectItems, fmt.Sprintf("t2.%s AS %s", quoteIdent(c.Name), quoteIdent(t2+"."+c.Name)))
+				item := sql.SelectAs("t2", c.Name, t2+"."+c.Name)
+				selectItems = append(selectItems, item)
 			}
 		}
 		if len(selectItems) == 0 {
 			selectItems = append(selectItems, "t1.*", "t2.*")
 		}
 
-		querySQL := fmt.Sprintf("SELECT %s\nFROM %s AS t1\nINNER JOIN %s AS t2\n    ON t1.%s = t2.%s;",
-			strings.Join(selectItems, ", "),
-			quoteIdent(t1),
-			quoteIdent(t2),
-			quoteIdent(col1),
-			quoteIdent(col2))
+		querySQL, err := sql.Join(t1, t2, col1, col2, selectItems)
+		if err != nil {
+			data.Status = "error"
+			data.Message = "Failed to render JOIN query: " + err.Error()
+			return views.Render(w, "join", data)
+		}
 
 		rows, err := pool.Query(querySQL)
 		if err != nil {

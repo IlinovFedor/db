@@ -15,12 +15,12 @@
 Инициализация сетевого мультиплексора и регистрация маршрутов выполняются в функции \texttt{main} (листинг~\ref{lst:main-router}).
 
 \begin{listing}[H]
-    \gofile[firstline=70, lastline=105, firstnumber=70]{../main.go}
+    \gofile[firstline=76, lastline=109, firstnumber=76, gobble=1, autogobble=false]{../main.go}
     \caption{Маршрутизация HTTP-запросов DDL, DML и DQL в \texttt{main.go}}
     \label{lst:main-router}
 \end{listing}
 
-В строке 73 шаблон \texttt{"GET /\{\$\}"} задает строгое соответствие корневому пути и выполняет перенаправление на страницу таблиц \texttt{/tables}. Для остальных операций предусмотрено четкое разделение:
+В строке 79 шаблон \texttt{"GET /\{\$\}"} задает строгое соответствие корневому пути и выполняет перенаправление на страницу таблиц \texttt{/tables}. Для остальных операций предусмотрено четкое разделение:
 \begin{itemize}
     \item \texttt{GET}-запросы отображают страницы и формы (например, \texttt{/ddl/\{op\}}, \texttt{/dml/\{op\}}, \texttt{/select});
     \item \texttt{POST}-запросы принимают данные форм и запускают сборку и выполнение соответствующих SQL-команд (\texttt{/ddl/create}, \texttt{/dml/insert}, \texttt{/query/select} и др.).
@@ -51,7 +51,7 @@
 При запуске сервера компилируется базовый шаблон \texttt{layout.html}, после чего методом \texttt{Clone()} создаются изолированные копии для каждой рабочей страницы (\texttt{tables}, \texttt{ddl}, \texttt{dml}, \texttt{select}, \texttt{join}). Для динамических вычислений в разметке зарегистрированы специальные функции (листинг~\ref{lst:func-map}).
 
 \begin{listing}[H]
-    \gofile[firstline=44, lastline=60, firstnumber=44]{../main.go}
+    \gofile[firstline=50, lastline=66, firstnumber=50, gobble=1, autogobble=false]{../main.go}
     \caption{Пользовательские функции шаблонизатора \texttt{funcMap}}
     \label{lst:func-map}
 \end{listing}
@@ -73,7 +73,7 @@
 Подключение к СУБД осуществляется в функции \texttt{main} через пул соединений библиотеки \texttt{pgx} (листинг~\ref{lst:db-pool}).
 
 \begin{listing}[H]
-    \gofile[firstline=25, lastline=37, firstnumber=25]{../main.go}
+    \gofile[firstline=25, lastline=37, firstnumber=25, gobble=1, autogobble=false]{../main.go}
     \caption{Инициализация пула соединений \texttt{pgx}}
     \label{lst:db-pool}
 \end{listing}
@@ -85,9 +85,19 @@
 Поскольку имена таблиц и столбцов передаются из веб-интерфейса динамически, прямое использование позиционных плейсхолдеров PostgreSQL (\texttt{\$1, \$2}) для них неприменимо. Для защиты от внедрения вредоносного SQL-кода (SQL Injection) в файле \texttt{db.go} реализованы специализированные функции экранирования (листинг~\ref{lst:quote-helpers}).
 
 \begin{listing}[H]
-    \gofile[firstline=39, lastline=45, firstnumber=39]{../db.go}
+    \gofile[firstline=287, lastline=293, firstnumber=287]{../db.go}
     \caption{Функции экранирования идентификаторов и литералов}
     \label{lst:quote-helpers}
 \end{listing}
 
-Функция \texttt{quoteIdent} экранирует идентификаторы PostgreSQL (имена таблиц, колонок) согласно стандарту: имя оборачивается в двойные кавычки, а внутренние кавычки удваиваются (\texttt{""}). Функция \texttt{quoteLiteral} обрамляет пользовательские строковые константы в одинарные кавычки с удвоением внутренних одинарных кавычек.
+Функция \texttt{quoteIdent} экранирует идентификаторы PostgreSQL (имена таблиц, колонок) согласно стандарту: имя оборачивается в двойные кавычки, а внутренние кавычки удваиваются (\texttt{\addfontfeature{Ligatures=TeXOff}\char34\char34}). Функция \texttt{quoteLiteral} обрамляет пользовательские строковые константы в одинарные кавычки с удвоением внутренних одинарных кавычек.
+
+Однако часть параметров форм нельзя экранировать ни как идентификатор, ни как литерал: это типы данных столбцов, операторы сравнения в условиях WHERE и правила \texttt{ON DELETE}/\texttt{ON UPDATE} внешних ключей. Они подставляются в текст запроса как есть, поэтому перед сборкой SQL проверяются по белым спискам допустимых значений в файле \texttt{validate.go} (листинг~\ref{lst:whitelists}).
+
+\begin{listing}[H]
+    \gofile[firstline=9, lastline=24, firstnumber=9]{../validate.go}
+    \caption{Белые списки допустимых значений и функция проверки \texttt{checkAllowed}}
+    \label{lst:whitelists}
+\end{listing}
+
+Если значение отсутствует в списке, запрос не отправляется в СУБД, а пользователю выводится сообщение об ошибке. Так, попытка передать в поле оператора строку \texttt{\addfontfeature{Ligatures=TeXOff}= '' OR 1=1; DROP TABLE departments; \char45\char45} отклоняется с сообщением \texttt{invalid WHERE operator}.

@@ -25,14 +25,14 @@
     \label{lst:sql-get-columns}
 \end{listing}
 
-Запрос возвращает имена атрибутов и их типы данных (\texttt{data\_type}), упорядоченные по физическому положению в таблице (\texttt{ordinal\_position}).
+Как и в предыдущем запросе, условие \texttt{table\_schema = 'public'} ограничивает поиск публичной схемой, чтобы одноименные таблицы из других схем не дублировали список колонок. Запрос возвращает имена атрибутов и их типы данных (\texttt{data\_type}), упорядоченные по физическому положению в таблице (\texttt{ordinal\_position}).
 
 \subsection{GET /tables}
 
 Просмотр содержимого таблиц инициируется запросом по маршруту \texttt{GET /tables} (для вывода всех таблиц) или \texttt{GET /tables/\{name\}} (для выбранной таблицы). Логика обработки сосредоточена в функции \texttt{HandleTables} (листинг~\ref{lst:handle-tables}).
 
 \begin{listing}[H]
-    \gofile[firstline=9, lastline=40, firstnumber=9]{../handlers_tables.go}
+    \gofile[firstline=9, lastline=39, firstnumber=9]{../handlers_tables.go}
     \caption{Обработчик страницы просмотра таблиц в \texttt{handlers\_tables.go}}
     \label{lst:handle-tables}
 \end{listing}
@@ -42,7 +42,7 @@
 Поскольку схема возвращаемых данных заранее неизвестна, в файле \texttt{db.go} реализована функция \texttt{scanRowsToTableData} (листинг~\ref{lst:scan-rows}).
 
 \begin{listing}[H]
-    \gofile[firstline=125, lastline=154, firstnumber=125]{../db.go}
+    \gofile[firstline=376, lastline=405, firstnumber=376]{../db.go}
     \caption{Динамическое чтение метаданных выборки и значений кортежей}
     \label{lst:scan-rows}
 \end{listing}
@@ -52,7 +52,7 @@
 Полученная структура \texttt{TableData} передается в шаблон \texttt{tables.html} (листинг~\ref{lst:tables-html}), где выполняется отрисовка HTML-таблицы.
 
 \begin{listing}[H]
-    \htmlfile[firstline=20, lastline=41, firstnumber=20]{../templates/tables.html}
+    \htmlfile[firstline=20, lastline=41, firstnumber=20, gobble=12, autogobble=false]{../templates/tables.html}
     \caption{Отрисовка динамической таблицы в \texttt{templates/tables.html}}
     \label{lst:tables-html}
 \end{listing}

@@ -1,0 +1,1 @@
+PRIMARY KEY ({{quote .Col}})

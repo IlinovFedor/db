@@ -15,16 +15,32 @@
 Фрагмент формы настройки выборки представлен в листинге~\ref{lst:select-form}.
 
 \begin{listing}[H]
-    \htmlfile[firstline=19, lastline=39, firstnumber=19]{../templates/select.html}
+    \htmlfile[firstline=31, lastline=59, firstnumber=31, gobble=20, autogobble=false]{../templates/select.html}
     \caption{Интерактивный конструктор выборки в \texttt{templates/select.html}}
     \label{lst:select-form}
 \end{listing}
 
-Обработка запроса выполняется в функции \texttt{SelectHandler} (листинг~\ref{lst:select-handler}).
+Обработка запроса выполняется в функции \texttt{SelectHandler}. Сначала для каждой отмеченной колонки считывается оператор и проверяется по белому списку \texttt{allowedSelectOps} (листинг~\ref{lst:select-where-check}).
 
 \begin{listing}[H]
-    \gofile[firstline=101, lastline=125, firstnumber=101]{../handlers_query.go}
-    \caption{Сборка условий фильтрации, сортировки и запроса в \texttt{handlers\_query.go}}
+    \gofile[firstline=73, lastline=82, firstnumber=73, gobble=2, autogobble=false]{../handlers_query.go}
+    \caption{Проверка оператора фильтрации в \texttt{handlers\_query.go}}
+    \label{lst:select-where-check}
+\end{listing}
+
+Затем в зависимости от оператора собирается предикат фильтрации (листинг~\ref{lst:select-where}). Значения экранируются функцией \texttt{quoteLiteral}, а для \texttt{LIKE} и \texttt{ILIKE} значение автоматически обрамляется символами \texttt{\%}.
+
+\begin{listing}[H]
+    \gofile[firstline=84, lastline=108, firstnumber=84, gobble=2, autogobble=false]{../handlers_query.go}
+    \caption{Сборка условий фильтрации WHERE в \texttt{handlers\_query.go}}
+    \label{lst:select-where}
+\end{listing}
+
+Затем добавляется сортировка, запрос собирается и выполняется (листинг~\ref{lst:select-handler}). Направление сортировки допускает только значения \texttt{ASC} и \texttt{DESC}.
+
+\begin{listing}[H]
+    \gofile[firstline=116, lastline=152, firstnumber=116, gobble=2, autogobble=false]{../handlers_query.go}
+    \caption{Сортировка, сборка и выполнение запроса \texttt{SELECT} в \texttt{handlers\_query.go}}
     \label{lst:select-handler}
 \end{listing}
 
@@ -37,7 +53,7 @@
 Обработчик \texttt{JoinHandler} выполняет валидацию и собирает итоговый запрос (листинг~\ref{lst:join-handler}).
 
 \begin{listing}[H]
-    \gofile[firstline=235, lastline=249, firstnumber=235]{../handlers_query.go}
+    \gofile[firstline=236, lastline=267, firstnumber=236, gobble=2, autogobble=false]{../handlers_query.go}
     \caption{Сборка и исполнение команды \texttt{INNER JOIN} в \texttt{handlers\_query.go}}
     \label{lst:join-handler}
 \end{listing}
